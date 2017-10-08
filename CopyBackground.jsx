@@ -33,31 +33,28 @@ main();
           for (var p=0;p<pasteFiles.length;p++){ 
               
           for (var a=0;a<places.length;a++){  
-               var material = app.open(pasteFiles[p]);   
-               var material_items = getTop(material);
-               unlock(material.layers);
-               var moved = moveObjectEnd(places[a], material.layers[0]); 
-                             moved.position =  material_items.position;
-                             material_items.selected = true;  
-                             
-                             var tempArtBoard = material.artboards.add(material_items.geometricBounds);  
-                             app.activeDocument = material;
-                             var lastIndex = material.artboards.length-1;
-                             material.fitArtboardToSelectedArt(lastIndex);  
-                             
-                             material_items.selected = false;
-                             moved.selected = true;
-                             var tempArtBoardBG = material.artboards.add(moved.geometricBounds);
-                             material.fitArtboardToSelectedArt(lastIndex+1);  
-                                
-                             var offsetX = tempArtBoard.artboardRect[0] - tempArtBoardBG.artboardRect[0];  
-                             var offsetY = tempArtBoard.artboardRect[1] - tempArtBoardBG.artboardRect[1];  
-                             moved.translate(offsetX, offsetY);  
-                             tempArtBoardBG.remove(); 
-                             tempArtBoard.remove();  
-                             
-                             
-                   var fname = templ.name.slice(0, -3);
+               
+             var material  = app.open(pasteFiles[p]);
+             unlock(material.layers);
+             var material_items = getTop(material);
+             material_items.selected = true;
+             var mAB = material.artboards.add(material_items.geometricBounds);  
+             var lastIndex = material.artboards.length-1;
+             material.fitArtboardToSelectedArt(lastIndex); 
+             var magb = mAB.artboardRect;             
+             material.selection = null;
+             mAB.remove(); 
+             
+             templ.activate(); 
+             templ.selection = null;
+             var gbb = places[a].geometricBounds;
+             places[a].selected = true;
+             
+             app.copy();               
+               
+             pasteClipboardToPlace(material, magb);
+      
+                var fname = templ.name.slice(0, -3);
                 var filePath = new File(outFolder.fsName+'/' + fname + '_' + suffix++);   
                 material.saveAs(filePath , saveAsEpsFile());  
                 material.close(SaveOptions.DONOTSAVECHANGES);   
@@ -67,6 +64,47 @@ main();
           templ.close(SaveOptions.DONOTSAVECHANGES);  
     }
 }
+ 
+ 
+ 
+
+function pasteClipboardToPlace(placedoc, gbb){
+                placedoc.activate();
+                
+                
+                var ccx = gbb[0] + (gbb[2] - gbb[0]) / 2;  
+                var ccy = gbb[1] + (gbb[3] - gbb[1]) / 2;  
+  
+                placedoc.views[0].centerPoint = [ccx, ccy]; 
+                
+                app.paste();
+                var sb = placedoc.selection[0].geometricBounds;
+                var tempArtBoard = placedoc.artboards.add(sb);  
+                var lastIndex = placedoc.artboards.length-1;
+                placedoc.fitArtboardToSelectedArt(lastIndex); 
+                var agb = tempArtBoard.artboardRect;
+                
+                var offX =  gbb[0] - agb[0];    
+                var offY =  gbb[1] - agb[1]; 
+                
+                app.cut();  
+  
+                placedoc.views[0].centerPoint = [ccx+offX, ccy+offY];  
+                app.paste();                  
+                
+                var group = placedoc.groupItems.add();                
+                group.name = "PlacedGroup";
+                group.move(placedoc,  ElementPlacement.PLACEATEND);
+                for ( s = 0; s < placedoc.selection.length; s++ ) 
+                    placedoc.selection[s].moveToEnd( group );
+                
+                placedoc.selection = null;
+                tempArtBoard.remove();  
+                
+    
+    } 
+ 
+ 
  
   function getTop(document){
        for (k=0; k<document.pageItems.length; k++) {

@@ -28,11 +28,11 @@ main();
         
     for (j=0; j<subfolders.length; j++) {    
       var  matFiles = subfolders[j].getFiles("*.eps");
-       templ = app.open(templFile);
+       template = app.open(templFile);
         var places = [];
         for (g=1; g<100; g++) {
             try {
-                places.push(templ.pageItems.getByName("g" + g));
+                places.push(template.pageItems.getByName("g" + g));
             }
             catch (exp){
             break;
@@ -41,73 +41,63 @@ main();
       
   
         for (i=0; i<Math.min(matFiles.length, places.length); i++) {
-            var material  = app.open(matFiles[i]);
-                var gr = templ.groupItems.add();
-                var moved = moveObjects(getAll(material), templ.layers[0], gr); 
-                             gr.position = places[i].position;
-                             app.activeDocument = templ;
-                             gr.selected = true;  
-                             var tempArtBoard = templ.artboards.add(gr.geometricBounds);  
-                             var lastIndex = templ.artboards.length-1;
-                             templ.fitArtboardToSelectedArt(lastIndex);  
-                             var offsetX = places[i].geometricBounds[0] - tempArtBoard.artboardRect[0];
-                             var offsetY = places[i].geometricBounds[1] - tempArtBoard.artboardRect[1];
-                             gr.translate(offsetX, offsetY);  
-                             tempArtBoard.remove();  
-                             gr.selected = false;
-                             templ.selection = null;
-                
-            material.close(SaveOptions.DONOTSAVECHANGES);   
+            var gbb = places[i].geometricBounds;
+             places[i].selected = true;
+             var tAB = template.artboards.add(gbb);  
+             var lastIndex = template.artboards.length-1;
+             template.fitArtboardToSelectedArt(lastIndex); 
+             var tagb = tAB.artboardRect;             
+             template.selection = null;
+             tAB.remove();  
+             
+             var material  = app.open(matFiles[i]);
+             app.executeMenuCommand("selectall");  
+             app.copy();
+             pasteClipboardToPlace(template, tagb, i);
+             material.close(SaveOptions.DONOTSAVECHANGES);     
         }
-        var filePath = new File(outFolder.fsName+'/' + templ.name.slice(0, -3) + '_' + j);   
-        templ.saveAs(filePath);  
-        templ.close(SaveOptions.DONOTSAVECHANGES);  
+        var filePath = new File(outFolder.fsName+'/' + template.name.slice(0, -3) + '_' + j);   
+        template.saveAs(filePath);  
+        template.close(SaveOptions.DONOTSAVECHANGES);  
     }
   }
  
  
- function getRealVisibleBounds2(arr) {
-      var bounds = [];
-      for(i = arr.length - 1; i >=0; i--){
-               if(arr[i].typename == "PathItem" && arr[i].clipping) bounds = arr[i].visibleBounds;       
-     }
-     return (bounds.length == 0) ? null : bounds;
-}
+
+function pasteClipboardToPlace(placedoc, gbb, groupIndex){
+                placedoc.activate();
+                
+                
+                var ccx = gbb[0] + (gbb[2] - gbb[0]) / 2;  
+                var ccy = gbb[1] + (gbb[3] - gbb[1]) / 2;  
   
- 
- function getRealVisibleBounds(grp) {
-      var bounds = [];
-      for(i = grp.pathItems.length - 1; i >=0; i--){
-               if(grp.pathItems[i].typename == "PathItem" && grp.pathItems[i].clipping) bounds = grp.pathItems[i].visibleBounds;       
-     }
-     return (bounds.length == 0) ? null : bounds;
-}
- 
-function getBounds ( arr, bounds ) {
-    var x = [], y = [], w = [], h = [],
-        bounds = bounds || 'geometricBounds';
-    for ( var i = 0; i < arr.length; i++ ) {
-        x.push( arr[i][bounds][0] );
-        y.push( arr[i][bounds][1] );
-        w.push( arr[i][bounds][2] );
-        h.push( arr[i][bounds][3] );
+                placedoc.views[0].centerPoint = [ccx, ccy]; 
+                
+                app.paste();
+                var sb = placedoc.selection[0].geometricBounds;
+                var tempArtBoard = placedoc.artboards.add(sb);  
+                var lastIndex = placedoc.artboards.length-1;
+                placedoc.fitArtboardToSelectedArt(lastIndex); 
+                var agb = tempArtBoard.artboardRect;
+                
+                var offX =  gbb[0] - agb[0];    
+                var offY =  gbb[1] - agb[1]; 
+                
+                app.cut();  
+  
+                placedoc.views[0].centerPoint = [ccx+offX, ccy+offY];  
+                app.paste();                  
+                
+                var group = placedoc.groupItems.add();                
+                group.name = "PlacedGroup" + groupIndex;
+                for ( s = 0; s < placedoc.selection.length; s++ ) 
+                    placedoc.selection[s].moveToEnd( group );
+                
+                placedoc.selection = null;
+                tempArtBoard.remove();  
+                
+    
     }
-    x = Math.min.apply( null, x );
-    y = Math.max.apply( null, y );
-    w = Math.max.apply( null, w );
-    h = Math.min.apply( null, h );
-    return rect = [ x, y, w, h ];
-};
-  
- 
- function getAll(document){
-     var elements = [];
-     for (k=0; k<document.pageItems.length; k++) {  
-         if (document.pageItems[k].parent.typename == "Layer")
-             elements.push(document.pageItems[k]);
-         }
-     return elements;
-     }
  
  function moveObjectsSimple(sel, dest) {  
     var elements = []    
