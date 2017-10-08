@@ -1,0 +1,61 @@
+﻿#!/usr/bin/env osascript -l JavaScript
+
+function run(argv) {
+
+ var templFile = File.openDialog("Выберите template");
+      
+      if (templFile == null) {
+        alert ("Ничего не выбрано");
+        return;
+        }
+    
+    var inFolder = Folder.selectDialog( 'Выберите папку в которой папки с материалами для копирования' );    
+    var outFolder = Folder.selectDialog( 'Выберите папку куда сохранять' );
+    
+    if ( inFolder == null || outFolder == null ) {  
+         alert ("Вы не выбрали папки");
+        return;
+        }
+
+
+
+
+
+ 
+}
+
+function runIllustratorAndExecuteScript(){
+ var illustrator = Application("Adobe Illustrator");
+
+}
+
+function readNewRootFolders(rootFolder, newRootFoldersList){
+      var fContent = rootFolder.getFiles();  
+      for (var i=0;i<fContent.length;i++){   
+            if (fContent[i] instanceof Folder )
+                 if (!isFolderInList(fContent[i].parent, newRootFoldersList) && checkFolderHasFilesOnly(fContent[i]))
+                     newRootFoldersList.push(fContent[i].parent);
+                 else
+                    readNewRootFolders(fContent[i], newRootFoldersList);
+    }
+}
+
+function isFolderInList(folder, list) {
+    var i;
+    for (i = 0; i < list.length; i++) {
+        if (list[i].absoluteURI === folder.absoluteURI) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function checkFolderHasFilesOnly(folder){
+     var folderContent = folder.getFiles();   
+     for (var i=0;i<folderContent.length;i++){   
+            if (folderContent[i] instanceof Folder )
+               return false;
+            }
+     return true;
+    }
