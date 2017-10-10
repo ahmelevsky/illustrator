@@ -1,0 +1,57 @@
+/version 3
+/name [ 19
+	616c69676e5f6f7065726174696f6e5f736574
+]
+/isOpen 1
+/actionCount 1
+/action-1 {
+	/name [ 13
+		616c69676e5f746f5f6c656674
+	]
+	/keyIndex 0
+	/colorIndex 0
+	/isOpen 1
+	/eventCount 2
+	/event-1 {
+		/useRulersIn1stQuadrant 0
+		/internalName (ai_plugin_alignPalette)
+		/localizedName [ 24
+			d092d18bd180d0b0d0b2d0bdd0b8d0b2d0b0d0bdd0b8d0b5
+		]
+		/isOpen 0
+		/isOn 1
+		/hasDialog 0
+		/parameterCount 1
+		/parameter-1 {
+			/key 1954115685
+			/showInPalette -1
+			/type (enumerated)
+			/name [ 64
+				d093d0bed180d0b8d0b7d0bed0bdd182d0b0d0bbd18cd0bdd0bed0b520d0b2d1
+				8bd180d0b0d0b2d0bdd0b8d0b2d0b0d0bdd0b8d0b520d0b2d0bbd0b5d0b2d0be
+			]
+			/value 1
+		}
+	}
+	/event-2 {
+		/useRulersIn1stQuadrant 0
+		/internalName (ai_plugin_alignPalette)
+		/localizedName [ 24
+			d092d18bd180d0b0d0b2d0bdd0b8d0b2d0b0d0bdd0b8d0b5
+		]
+		/isOpen 0
+		/isOn 1
+		/hasDialog 0
+		/parameterCount 1
+		/parameter-1 {
+			/key 1954115685
+			/showInPalette -1
+			/type (enumerated)
+			/name [ 60
+				d092d0b5d180d182d0b8d0bad0b0d0bbd18cd0bdd0bed0b520d0b2d18bd180d0
+				b0d0b2d0bdd0b8d0b2d0b0d0bdd0b8d0b520d0b2d0b2d0b5d180d185
+			]
+			/value 4
+		}
+	}
+}

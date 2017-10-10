@@ -1,7 +1,79 @@
 ﻿#target illustrator
 
+var actionStr = [ 
+"/version 3",
+"/name [ 19",
+"616c69676e5f6f7065726174696f6e5f736574",
+"]",
+"/isOpen 1",
+"/actionCount 1",
+"/action-1 {",
+"/name [ 13",
+"616c69676e5f746f5f6c656674",
+"]",
+"/keyIndex 0",
+"/colorIndex 0",
+"/isOpen 1",
+"/eventCount 2",
+"/event-1 {",
+"/useRulersIn1stQuadrant 0",
+"/internalName (ai_plugin_alignPalette)",
+"/localizedName [ 24",
+"d092d18bd180d0b0d0b2d0bdd0b8d0b2d0b0d0bdd0b8d0b5",
+"]",
+"/isOpen 0",
+"/isOn 1",
+"/hasDialog 0",
+"/parameterCount 1",
+"/parameter-1 {",
+"/key 1954115685",
+"/showInPalette -1",
+"/type (enumerated)",
+"/name [ 64",
+"d093d0bed180d0b8d0b7d0bed0bdd182d0b0d0bbd18cd0bdd0bed0b520d0b2d1",
+"8bd180d0b0d0b2d0bdd0b8d0b2d0b0d0bdd0b8d0b520d0b2d0bbd0b5d0b2d0be",
+"]",
+"/value 1",
+"}",
+"}",
+"/event-2 {",
+"/useRulersIn1stQuadrant 0",
+"/internalName (ai_plugin_alignPalette)",
+"/localizedName [ 24",
+"d092d18bd180d0b0d0b2d0bdd0b8d0b2d0b0d0bdd0b8d0b5",
+"]",
+"/isOpen 0",
+"/isOn 1",
+"/hasDialog 0",
+"/parameterCount 1",
+"/parameter-1 {",
+"/key 1954115685",
+"/showInPalette -1",
+"/type (enumerated)",
+"/name [ 60",
+"d092d0b5d180d182d0b8d0bad0b0d0bbd18cd0bdd0bed0b520d0b2d18bd180d0",
+"b0d0b2d0bdd0b8d0b2d0b0d0bdd0b8d0b520d0b2d0b2d0b5d180d185",
+"]",
+"/value 4",
+"}",
+"}",
+"}",
+].join("\n");
+   
+
+
+var actFileDestStr = Folder.desktop  + "/AlignAction.aia";  
+                               
+                                var f = new File(actFileDestStr);
+                                    f.open('w');
+                                    f.write(this.actionStr);
+                                    f.close();
+                                                         
+                                app.loadAction(f);  
 main();  
 
+ app.unloadAction("align_operation_set", ''); 
+                                f.remove();   
   
   function main(){
       var templFile = File.openDialog("Выберите template");
@@ -62,8 +134,8 @@ main();
              template.fitArtboardToSelectedArt(lastIndex); 
              template.selection = null;
              
-              
-             var material  = app.open(randomElementAndRemove(items_packs[i]));
+             var materialFile = randomElementAndRemove(items_packs[i]);
+             var material  = app.open(materialFile);
              app.executeMenuCommand("selectall");  
              app.copy();
              
@@ -80,6 +152,7 @@ main();
              app.doScript("align_to_left", "align_operation_set",true);  
              
              material.close(SaveOptions.DONOTSAVECHANGES);  
+             materialFile.remove();
              tAB.remove();
         }
         var filePath = new File(outFolder.fsName+'/' + template.name.slice(0, -3) + '_' + (++suffix));   
@@ -91,50 +164,6 @@ main();
   }
  
 
-function pasteClipboardToPlace(placedoc, gbb, groupIndex){
-                placedoc.activate();
-                
-                
-                var ccx = gbb[0] + (gbb[2] - gbb[0]) / 2;  
-                var ccy = gbb[1] + (gbb[3] - gbb[1]) / 2;  
-  
-                placedoc.views[0].centerPoint = [ccx, ccy]; 
-                
-                app.paste();
-                var sb = placedoc.selection[0].geometricBounds;
-                var tempArtBoard = placedoc.artboards.add(sb);  
-                var lastIndex = placedoc.artboards.length-1;
-                placedoc.fitArtboardToSelectedArt(lastIndex); 
-                var agb = tempArtBoard.artboardRect;
-                
-                var offX =  gbb[0] - agb[0];    
-                var offY =  gbb[1] - agb[1]; 
-                
-                app.cut();  
-  
-                placedoc.views[0].centerPoint = [ccx+offX, ccy+offY];  
-                app.paste();                  
-                
-                var group = placedoc.groupItems.add();                
-                group.name = "PlacedGroup" + groupIndex;
-                for ( s = 0; s < placedoc.selection.length; s++ ) 
-                    placedoc.selection[s].moveToEnd( group );
-                
-                placedoc.selection = null;
-                tempArtBoard.remove();  
-                
-    
-    }
- 
- function moveObjects(sel, dest, group) {  
-    var elements = []    
-    for (k=sel.length-1; k>=0; k--) {   
-        var el =sel[k].duplicate(dest,ElementPlacement.PLACEATBEGINNING);  
-        el.moveToBeginning( group );
-        elements.push(el);
-    }  
-  return elements;
- }
 
 function randomElement(arr) {
 	return arr[Math.floor(Math.random() * arr.length)];
