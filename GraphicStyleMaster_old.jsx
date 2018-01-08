@@ -27,7 +27,7 @@ function Main() {
              while (true) {
                    var doc = open(subFiles[i]);
                    var gslength = doc.graphicStyles.length;
-                   if (doc.graphicStyles[arts].name.startsWith('[Default]') || doc.graphicStyles[arts].name.startsWith('Default')) arts++;
+                   if (doc.graphicStyles[arts].name =='[По умолчанию]' || doc.graphicStyles[arts].name =='[Default]') arts++;
                    
                    if (arts>=gslength) {
                        doc.close(SaveOptions.DONOTSAVECHANGES); 
@@ -43,9 +43,10 @@ function Main() {
                     }
                  catch  (exp){}
                  
-                  var gr = doc.groupItems.add();
+                   var gr = doc.groupItems.add();
                    for (j=0; j<doc.symbolItems.length;j++)
                         doc.symbolItems[j].moveToBeginning( gr );                 
+                 
                  
                   while (doc.symbolItems.length>0){
                     doc.symbolItems[0].breakLink();
@@ -55,11 +56,11 @@ function Main() {
                     app.executeMenuCommand ('expandStyle');
                     }
                 catch  (exp){}
-                app.doScript("Delete Unused Panel Items", "Default Actions", true); 
+                app.doScript("Удалить неиспользуемые элементы палитры", "Операции по умолчанию", true); 
                  
                 var filePath = new File(outFolder.fsName+'/' + doc.name.slice(0, -3) + '_' + (suffix++));   
                 
-createClippingMasks(doc);                
+                createClippingMasks(doc);                
                 
                 var epsOptions;
                 if (doc.artboards.length>1)
@@ -97,12 +98,13 @@ function createClippingMasks(docRef){
  
   function getTopGroups(document){
       var topGroups = [];
-       for (k=0; k<document.groupItems.length; k++) {
-         if (document.groupItems[k].parent.typename == "Layer")
-            topGroups.push(document.groupItems[k]);
+       for (k=0; k<document.pageItems.length; k++) {
+         if (document.pageItems[k].typename == "GroupItem" && document.pageItems[k].parent.typename == "Layer")
+            topGroups.push(document.pageItems[k]);
          }
        return topGroups;
       }
+
 
 function saveArtboardsAsEpsFile(docum) {  
      var epsOptions = new EPSSaveOptions();  

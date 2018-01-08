@@ -7,7 +7,7 @@ Main();
 function Main() {  
     
           var outFolder, i, inFolder, subFiles;  
-          var suffix = 0
+          var suffix = 0;
           
           inFolder = Folder.selectDialog( 'Выберите исходную папку с файлами' ); 
           outFolder = Folder.selectDialog( 'Выберите папку куда сохранять' );
@@ -98,9 +98,9 @@ function createClippingMasks(docRef){
  
   function getTopGroups(document){
       var topGroups = [];
-       for (k=0; k<document.pageItems.length; k++) {
-         if (document.pageItems[k].typename == "GroupItem" && document.pageItems[k].parent.typename == "Layer")
-            topGroups.push(document.pageItems[k]);
+       for (k=0; k<document.groupItems.length; k++) {
+         if (document.groupItems[k].parent.typename == "Layer")
+            topGroups.push(document.groupItems[k]);
          }
        return topGroups;
       }

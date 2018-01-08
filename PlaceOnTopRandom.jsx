@@ -71,8 +71,8 @@ main();
   
   
   function main(){
-    var templFolder = Folder.selectDialog( 'Выберите папку с фонами' );  
-    var inFolder = Folder.selectDialog( 'Выберите папку с материалами для вставки' );    
+    var templFolder = Folder.selectDialog( 'Выберите папку с изображениями которые будут располагаться на переднем плане' );  
+    var inFolder = Folder.selectDialog( 'Выберите папку с фонами' );    
     var outFolder = Folder.selectDialog( 'Выберите папку куда сохранять' );
     if (templFolder == null|| inFolder == null || outFolder == null ) {  
          alert ("Вы не выбрали папки");
@@ -85,7 +85,7 @@ main();
   
   
     for (var i=0;i<templFiles.length;i++){ 
-         var suffix = 1929;
+         var suffix = 1;
          templ = app.open(templFiles[i]);   
                     var places = [];
                     for (var p=1;p<50;p++){   
@@ -98,42 +98,33 @@ main();
                 }
             
           for (var p=0;p<pasteFiles.length;p++){ 
-              
-          for (var a=0;a<places.length;a++){  
              
              templ.selection = null;
-             places[a].selected = true;             
+             places[Math.floor(Math.random() * places.length)].selected = true;             
              
              app.copy();               
              var material  = app.open(pasteFiles[p]);
              app.paste();
-              var group = material.groupItems.add();                
-                group.name = "PlacedGroup";
-                group.move(material,  ElementPlacement.PLACEATEND);
-                for ( s = 0; s < material.selection.length; s++ ) 
-                    material.selection[s].moveToEnd( group );
-                    
              align();
          
                
                 
                 material.selection = null; 
-                var fname = material.name.slice(0, -4);
-                var filePath = new File(outFolder.fsName+'/' + fname + '_' + pad(a+1, 2));   
+                var filePath = new File(outFolder.fsName+'/' + material.name);   
                 material.saveAs(filePath , saveAsEpsFile());  
                 material.close(SaveOptions.DONOTSAVECHANGES);   
-                }        
             }    
           templ.close(SaveOptions.DONOTSAVECHANGES);  
     }
 }
  
+ 
 function pad(num, size) {
     var s = num+"";
     while (s.length < size) s = "0" + s;
     return s;
-} 
- 
+}
+
 function align(){
  var actFileDestStr = Folder.desktop  + "/AlignAction.aia";  
                                

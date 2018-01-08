@@ -21,14 +21,12 @@ function Main() {
                 
             for ( i = 0; i < subFiles.length; i++ ) {  
                       
-                   var doc = open(subFiles[i]);
+                    var doc = open(subFiles[i]);
                    
-                     try{
-                    app.executeMenuCommand ('selectall');
-                    app.executeMenuCommand ('expandStyle');
-                    }
-                    catch  (exp){}
-                   
+                   var gr = doc.groupItems.add();
+                   for (j=0; j<doc.symbolItems.length;j++)
+                        doc.symbolItems[j].moveToBeginning( gr );
+                        
                    while (doc.symbolItems.length>0){
                     doc.symbolItems[0].breakLink();
                    }

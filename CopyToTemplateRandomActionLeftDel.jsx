@@ -77,7 +77,7 @@ main();
   
   function main(){
       var templFile = File.openDialog("Выберите template");
-      var suffix = 1622;
+      var suffix = 0;
       
       if (templFile == null) {
         alert ("Ничего не выбрано");

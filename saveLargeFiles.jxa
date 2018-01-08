@@ -1,0 +1,103 @@
+var appName = "Adobe Illustrator";
+function saveEps(path) {
+ var se = Application('System Events');
+ 
+ var keys = { 
+  enter: 0x24, 
+  up: 0x7E, 
+  down: 0x7D, 
+  tab: 0x30 
+ }; 
+
+  
+ var keyCode = function (code, times) { 
+  times = times || 1; 
+  for (var i = 0; i < times; i++) { 
+   se.keyCode(code); 
+  } 
+  delay(0.1); 
+ }; 
+ 
+ var fileSections = path.split("/"); 
+ var fileName = fileSections.pop(); 
+ var fileDir = fileSections.join("/"); 
+ 
+ 
+ var illustrator = se.processes.byName('Adobe Illustrator'); 
+ illustrator.frontmost = true;
+  
+ se.keystroke("s", { 
+  using: ["shift down", "command down"] 
+ }); 
+ delay(0.1)
+  
+ var saveAs = illustrator.windows.byName("Сохранить как"); 
+  
+ se.keystroke("g", { 
+  using: ["shift down", "command down"] 
+ });  
+ 
+  
+ var sheet = saveAs.sheets[0]; 
+ delay(0.1) 
+ var pathCombo = sheet.textFields[0]; 
+ pathCombo.value = fileDir; 
+ keyCode(keys.enter); 
+  delay(0.1) 
+  
+ var txtFileName = saveAs.textFields[0]; 
+ txtFileName.value = fileName; 
+ delay(0.1); 
+ //var format = saveAs.popUpButtons[1]; 
+ //format.click(); 
+  
+ keyCode(keys.enter); 
+ delay(0.1); 
+ keyCode(keys.up, 7); 
+ keyCode(keys.down); 
+ keyCode(keys.down, 6); 
+ keyCode(keys.tab); 
+ keyCode(keys.up, 2); 
+ keyCode(keys.tab); 
+ se.keystroke('0') 
+ keyCode(keys.enter);
+}
+
+function waitForFile(targetFile) {
+ var appSys = Application('System Events');
+ function waitForFileInner(targetFile) {
+  if (appSys.exists(Path(targetFile))) {
+   return;
+  }
+  delay(1);
+  waitForFileInner(targetFile);
+ }
+ waitForFileInner(targetFile);
+ 
+}
+
+
+var app = Application('Adobe Illustrator');
+app.activate();
+app.includeStandardAdditions = true;
+var sourcePath = app.chooseFolder({ withPrompt: 'Please select source folder' });
+var strSourcePath = sourcePath.toString();
+var destPath = app.chooseFolder({ withPrompt: 'Please select destination folder' });
+var strDestPath = destPath.toString();
+
+var appSys = Application('System Events'),
+srcFiles = appSys.folders.byName(strSourcePath).diskItems.name();
+
+
+for (var srcFile of srcFiles) {
+ var fileName = srcFile.toString(); 
+ if (fileName.endsWith(".eps")) {
+  var filePath = strSourcePath + "/" + fileName;
+  var destFilePath  = strDestPath + "/" + fileName;
+  app.open(filePath);
+  saveEps(destFilePath);
+  waitForFile(destFilePath);
+  delay(1);
+  appSys.keystroke("w", {using: ["command down"]});
+ }
+}
