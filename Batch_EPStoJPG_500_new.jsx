@@ -16,7 +16,8 @@
 #target illustrator  
 var df = new Folder('~/Desktop');
  
-var topLevel = Folder.selectDialog('Please choose Folder with your EPS files…', df);
+var topLevel = Folder.selectDialog('Выберите папку с EPS', df);
+var outputFolder = Folder.selectDialog('Выберите папку куда писать JPG', topLevel);
 
 var actionStr = [ 
  "/version 3",
@@ -197,8 +198,8 @@ var actionStr = [
 "/key 1231953952",
 "/showInPalette -1",
 "/type (ustring)",
-"/value [ 6",
-"673a5c4f5554",
+"/value [ FOLDERPATH_LENGTH",
+"FOLDERPATH",
 "]",
 "}",
 "}",
@@ -229,8 +230,8 @@ function main() {
                  activeDocument.close(SaveOptions.PROMPTTOSAVECHANGES);
             }
           for (var a = 0; a < fileList.length; a++) {
-               var fname = fileList[a].name.slice(0, -4);
-               var filePath = new File('G:/Out/' + fname + '.jpg'); 
+              var fname = fileList[a].name.slice(0, -4);
+                var filePath = new File(outputFolder.fsName+'/' + fname+ '.jpg'); 
                   if (filePath.exists) continue;
                var docRef = open(fileList[a]);
                with (docRef) {
@@ -249,7 +250,7 @@ function main() {
                                    var DocW = DocH;
                                     
                                 }
-                                var pathfile = fullName.fsName;                               
+                                var pathfile = outputFolder.fsName;                               
                                 
                                 var destStr = decodeURI(pathfile);
                                 var pathString = toHex(destStr);
@@ -275,13 +276,38 @@ function main() {
      }
 }
  
- 
+ function toHex3(str){
+     var hex;
+  try{
+    hex = unescape(encodeURIComponent(str))
+    .split('').map(function(v){
+      return v.charCodeAt(0).toString(16)
+    }).join('')
+  }
+  catch(e){
+    hex = str
+  }
+  return hex
+}
+
 function toHex(str) {
     var result = '';
     for (var i=0; i<str.length; i++) {
       result += str.charCodeAt(i).toString(16);
     }
     return result;
+  }
+
+function toHex2(str) {
+    var hex, i;
+
+    var result = "";
+    for (i=0; i<str.length; i++) {
+        hex = str.charCodeAt(i).toString(16);
+        result += ("000"+hex).slice(-4);
+    }
+
+    return result
   }
 
 function fileListRecursive(f, exp) {          

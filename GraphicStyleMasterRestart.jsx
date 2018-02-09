@@ -1,33 +1,62 @@
-﻿#target Illustrator  
- while (app.documents.length) {  
-  app.activeDocument.close(SaveOptions.PROMPTTOSAVECHANGES);  
-}  
-Main();  
-  
-function Main() {  
-    
-          var outFolder, i, inFolder, subFiles;  
-          var suffix = 0
+﻿#target estoolkit   
+var outFolder, i, inFolder, subFiles, filesCount, files, done;  
           
           inFolder = Folder.selectDialog( 'Выберите исходную папку с файлами' ); 
           outFolder = Folder.selectDialog( 'Выберите папку куда сохранять' );
-  
-              
+          filesCount = Number(prompt ('Через сколько ai файлов перезапускать иллюстратор?', 0, 'Вопрос'));  
+         
           if ( inFolder == null || outFolder == null ) {  
                 alert ("Вы не выбрали папки");
-                return;
+                throw new Error("Nothing is selected");
             }
-                                                      
-           subFiles = inFolder.getFiles( /\.ai$/i ) ;
+        
+    subFiles = inFolder.getFiles( /\.ai/i ) ;
 
-                
-            for ( i = 0; i < subFiles.length; i++ ) {  
+
+            
+    while (subFiles.length>0) {  
+         if (filesCount == 0)
+            files = subFiles.splice(0, subFiles.length);
+         else if ( subFiles.length  >filesCount)
+            files =  subFiles.splice(0, filesCount);
+         else 
+            files = subFiles.splice(0);
+         
+         done = false;
+         var bt = new BridgeTalk();  
+         bt.target = 'illustrator';  
+         bt.onResult = function(resultMsg) {  
+            $.writeln(resultMsg.body    );
+            done = true;
+         }  
+     
+        bt.onError = function(a) {  
+           alert(a.body + "(" + a.headers["Error-Code"] + ")")  
+        }  
+        
+        bt.body = Main.toSource() + "(" + files.toSource() + "," + outFolder.toSource() + ");";  
+        bt.send();                   
+        $.writeln("Executing Main...")
+        while (!done)
+        {
+           $.sleep(1000)
+        }
+     $.writeln("Wait for the next iteration...")
+     $.sleep(5000);
+    }
+
+
+
+function Main(files, outputFolder) {  
+
+         for ( i = 0; i < files.length; i++ ) {  
+    
              var arts = 0;
              var suffix = 1;
              while (true) {
-                   var doc = open(subFiles[i]);
+                   var doc = open(files[i]);
                    var gslength = doc.graphicStyles.length;
-                   if (doc.graphicStyles[arts].name.startsWith('[Default]') || doc.graphicStyles[arts].name.startsWith('Default')) arts++;
+                   if (doc.graphicStyles[arts].name =='[По умолчанию]' || doc.graphicStyles[arts].name =='[Default]') arts++;
                    
                    if (arts>=gslength) {
                        doc.close(SaveOptions.DONOTSAVECHANGES); 
@@ -43,10 +72,11 @@ function Main() {
                     }
                  catch  (exp){}
                  
-                  var grForSymbols = doc.groupItems.add();
+                   var grForSymbols = doc.groupItems.add();
                    for (j=0; j<doc.symbolItems.length;j++)
-                        doc.symbolItems[j].moveToBeginning( grForSymbols );         
-                        
+                        doc.symbolItems[j].moveToBeginning( grForSymbols );          
+                 
+                 
                   while (doc.symbolItems.length>0){
                     doc.symbolItems[0].breakLink();
                    }
@@ -55,15 +85,14 @@ function Main() {
                     app.executeMenuCommand ('expandStyle');
                     }
                 catch  (exp){}
-                app.doScript("Delete Unused Panel Items", "Default Actions", true); 
+                app.doScript("Удалить неиспользуемые элементы палитры", "Операции по умолчанию", true); 
                  
-                var filePath = new File(outFolder.fsName+'/' + doc.name.slice(0, -3) + '_' + pad(suffix++,2));   
+                var filePath = new File(outputFolder.fsName+'/' + doc.name.slice(0, -3) + '_' +  pad(suffix++, 2));   
                 
-
-                 grForSymbols.selected = true;
-                 app.executeMenuCommand ('ungroup');
+                grForSymbols.selected = true;
+                app.executeMenuCommand ('ungroup');                
                 
-                 createClippingMasks(doc);                
+                createClippingMasks(doc);                
                 
                 var epsOptions;
                 if (doc.artboards.length>1)
@@ -74,10 +103,21 @@ function Main() {
                 doc.close(SaveOptions.DONOTSAVECHANGES); 
                 arts++;
                 if (arts>=gslength) break;
-          };  
-       
         };
- };  
+    };
+     app.quit();
+     return "Completed...";
+     
+     
+     
+function pad(num, size) {
+    var s = num+"";
+    while (s.length < size) s = "0" + s;
+    return s;
+} 
+
+
+
 
 
 function createClippingMasks(docRef){
@@ -87,7 +127,6 @@ function createClippingMasks(docRef){
      docRef.selection = null;
      docRef.selectObjectsOnActiveArtboard();
      app.executeMenuCommand ('group');
-     //После группировки нулевой элемент выделения - сама группа     
      var group = docRef.selection[0];
      
      var top=docRef.artboards[artindex].artboardRect[1] ;  
@@ -113,6 +152,7 @@ function createClippingMasks(docRef){
          }
        return topGroups;
       }
+
 
 function saveArtboardsAsEpsFile(docum) {  
      var epsOptions = new EPSSaveOptions();  
@@ -143,3 +183,10 @@ function saveAsEpsFile() {
      }  
      return epsOptions;  
 }
+     
+     
+}
+
+
+
+ 

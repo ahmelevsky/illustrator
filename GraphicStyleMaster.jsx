@@ -43,9 +43,9 @@ function Main() {
                     }
                  catch  (exp){}
                  
-                   var gr = doc.groupItems.add();
+                   var grForSymbols = doc.groupItems.add();
                    for (j=0; j<doc.symbolItems.length;j++)
-                        doc.symbolItems[j].moveToBeginning( gr );                 
+                        doc.symbolItems[j].moveToBeginning( grForSymbols );                 
                  
                  
                   while (doc.symbolItems.length>0){
@@ -58,9 +58,12 @@ function Main() {
                 catch  (exp){}
                 app.doScript("Удалить неиспользуемые элементы палитры", "Операции по умолчанию", true); 
                  
-                var filePath = new File(outFolder.fsName+'/' + doc.name.slice(0, -3) + '_' + (suffix++));   
+                var filePath = new File(outFolder.fsName+'/' + doc.name.slice(0, -3) + '_' + pad(suffix++,2));   
                 
-createClippingMasks(doc);                
+                 grForSymbols.selected = true;
+                 app.executeMenuCommand ('ungroup');
+                
+                createClippingMasks(doc);                
                 
                 var epsOptions;
                 if (doc.artboards.length>1)
@@ -76,11 +79,23 @@ createClippingMasks(doc);
         };
  };  
 
+function pad(num, size) {
+    var s = num+"";
+    while (s.length < size) s = "0" + s;
+    return s;
+} 
+ 
+
 function createClippingMasks(docRef){
     
-    var groups = getTopGroups(docRef);
     for (artindex=0;artindex<docRef.artboards.length;artindex++){
-     var group = groups[docRef.artboards.length-1-artindex];
+     docRef.artboards.setActiveArtboardIndex(artindex);
+     docRef.selection = null;
+     docRef.selectObjectsOnActiveArtboard();
+     app.executeMenuCommand ('group');
+     //После группировки нулевой элемент выделения - сама группа     
+     var group = docRef.selection[0];
+     
      var top=docRef.artboards[artindex].artboardRect[1] ;  
      var left=docRef.artboards[artindex].artboardRect[0];  
      var width=docRef.artboards[artindex].artboardRect[2]-docRef.artboards[artindex].artboardRect[0];  

@@ -1,24 +1,43 @@
-﻿#target Illustrator  
- while (app.documents.length) {  
-  app.activeDocument.close(SaveOptions.PROMPTTOSAVECHANGES);  
-}  
-Main();  
-  
-function Main() {  
-    
-          var outFolder, i, inFolder, subFiles;  
-          var suffix = 0
+﻿#target estoolkit    
+ 
+var outFolder, i, inFolder, subFiles;  
           
           inFolder = Folder.selectDialog( 'Выберите исходную папку с файлами' ); 
           outFolder = Folder.selectDialog( 'Выберите папку куда сохранять' );
-  
-              
-          if ( inFolder == null || outFolder == null ) {  
+          subFiles = inFolder.getFiles( /\.ai$/i ) ;
+         
+           if ( inFolder == null || outFolder == null ) {  
                 alert ("Вы не выбрали папки");
                 return;
             }
-                                                      
-           subFiles = inFolder.getFiles( /\.ai$/i ) ;
+                           
+ var bt = new BridgeTalk();  
+    bt.target = 'illustrator';  
+    bt.onResult = function(resultMsg) {  
+        //~                 while (BridgeTalk.getStatus('illustrator') != 'ISNOTRUNNING') $.sleep(20);  
+        //~                 ++j < fileList.length && AIrasterize(fileList[j], destinationFolder, itemsProcessed, itemsToReset);  
+    }  
+    // tell you where error occur  
+    bt.onError = function(a) {  
+        alert(a.body + "(" + a.headers["Error-Code"] + ")")  
+    }  
+    bt.send();           
+         
+         
+            for ( i = 0; i < subFiles.length; i++ ) {  
+                 
+                 bt.body = rasterizeDoc.toString() + ";rasterizeDoc(" + fileList[j].toSource() + "," + destinationFolder.toSource() + "," + itemsProcessed + "," + itemsToReset + ");";  
+    
+
+            }
+  
+function Main(file, outputFolder) {  
+    
+          
+  
+              
+                                              
+           
 
                 
             for ( i = 0; i < subFiles.length; i++ ) {  
@@ -27,7 +46,7 @@ function Main() {
              while (true) {
                    var doc = open(subFiles[i]);
                    var gslength = doc.graphicStyles.length;
-                   if (doc.graphicStyles[arts].name.startsWith('[Default]') || doc.graphicStyles[arts].name.startsWith('Default')) arts++;
+                   if (doc.graphicStyles[arts].name =='[По умолчанию]' || doc.graphicStyles[arts].name =='[Default]') arts++;
                    
                    if (arts>=gslength) {
                        doc.close(SaveOptions.DONOTSAVECHANGES); 
@@ -43,10 +62,11 @@ function Main() {
                     }
                  catch  (exp){}
                  
-                  var grForSymbols = doc.groupItems.add();
+                   var gr = doc.groupItems.add();
                    for (j=0; j<doc.symbolItems.length;j++)
-                        doc.symbolItems[j].moveToBeginning( grForSymbols );         
-                        
+                        doc.symbolItems[j].moveToBeginning( gr );                 
+                 
+                 
                   while (doc.symbolItems.length>0){
                     doc.symbolItems[0].breakLink();
                    }
@@ -55,15 +75,11 @@ function Main() {
                     app.executeMenuCommand ('expandStyle');
                     }
                 catch  (exp){}
-                app.doScript("Delete Unused Panel Items", "Default Actions", true); 
+                app.doScript("Удалить неиспользуемые элементы палитры", "Операции по умолчанию", true); 
                  
-                var filePath = new File(outFolder.fsName+'/' + doc.name.slice(0, -3) + '_' + pad(suffix++,2));   
+                var filePath = new File(outFolder.fsName+'/' + doc.name.slice(0, -3) + '_' + (suffix++));   
                 
-
-                 grForSymbols.selected = true;
-                 app.executeMenuCommand ('ungroup');
-                
-                 createClippingMasks(doc);                
+createClippingMasks(doc);                
                 
                 var epsOptions;
                 if (doc.artboards.length>1)
@@ -79,17 +95,11 @@ function Main() {
         };
  };  
 
-
 function createClippingMasks(docRef){
     
+    var groups = getTopGroups(docRef);
     for (artindex=0;artindex<docRef.artboards.length;artindex++){
-     docRef.artboards.setActiveArtboardIndex(artindex);
-     docRef.selection = null;
-     docRef.selectObjectsOnActiveArtboard();
-     app.executeMenuCommand ('group');
-     //После группировки нулевой элемент выделения - сама группа     
-     var group = docRef.selection[0];
-     
+     var group = groups[docRef.artboards.length-1-artindex];
      var top=docRef.artboards[artindex].artboardRect[1] ;  
      var left=docRef.artboards[artindex].artboardRect[0];  
      var width=docRef.artboards[artindex].artboardRect[2]-docRef.artboards[artindex].artboardRect[0];  
@@ -113,6 +123,7 @@ function createClippingMasks(docRef){
          }
        return topGroups;
       }
+
 
 function saveArtboardsAsEpsFile(docum) {  
      var epsOptions = new EPSSaveOptions();  

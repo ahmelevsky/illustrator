@@ -12,7 +12,8 @@ If @error Then
 	    Exit 0
 	 EndIf
 $FileList = _FileListToArray($inputFolder, "*.eps", 1, True)
-
+EnvSet("ILL_OUTPUT", $outputFolder)
+EnvUpdate()
 
 ActivateWindow($illustratorWindow)
 $version = "";
@@ -30,7 +31,7 @@ EndIf
 
 
 For $i = 1 To $FileList[0]
-    If FileExists (GetSavePath($FileList[$i], $outputFolder)) Then ContinueLoop
+    If FileExists (GetSavePathFull($FileList[$i], $outputFolder)) Then ContinueLoop
     OpenFile($FileList[$i])
 	SaveFile($FileList[$i])
 	CloseFile($FileList[$i])
@@ -38,23 +39,11 @@ For $i = 1 To $FileList[0]
 
 
 Func OpenFile(ByRef $fileName)
+   ConsoleWrite("Открытие файла " & $fileName)
    Send("^o")
    WinWaitActive("Открыть")
-   OpenFileFunc($fileName)
-EndFunc
-
-Func OpenFileFunc(ByRef $fileName)
-   While Not (StringInStr(ControlGetText("Открыть", "","[CLASSNN:Edit1]"), ":"))
-	  ControlSetText("Открыть", "","[CLASSNN:Edit1]", $fileName)
-	  Sleep(500)
-   WEnd
+   ControlSetText("Открыть", "","[CLASSNN:Edit1]", $fileName)
    ControlClick("Открыть", "", "[CLASSNN:Button1]")
-   Sleep(500)
-   If WinExists("Открыть", "ОК") Then
-	  ConsoleWrite("Error opening file" & @LF)
-	  ControlClick("Открыть", "", "[CLASS:Button; TEXT:ОК; INSTANCE:1]")
-	  OpenFileFunc($fileName)
-   EndIf
 EndFunc
 
 Func SaveFile(ByRef $fileName)
@@ -62,14 +51,12 @@ Func SaveFile(ByRef $fileName)
 	  Send("^S")
 	  Sleep(1000)
    WEnd
-   Local $newFileName = GetSavePath($fileName, $outputFolder)
+   Local $newFileName = GetSavePath($fileName)
    ControlSetText("Сохранить как", "","[CLASSNN:Edit1]",$newFileName)
    ControlCommand("Сохранить как", "","[CLASS:Combobox; INSTANCE:2]", "SelectString", "Illustrator EPS (*.EPS)")
-   ;ControlClick("Сохранить как", "", "[CLASSNN:Button4]")
+   ControlSetText("Сохранить как", "", "Edit3", $outputFolder)
    ControlClick("Сохранить как", "", "[CLASS:Button; TEXT:Со&хранить; INSTANCE:1]")
-   ;ConsoleWrite("Начало ожидания окна с настройками сохранения")
    ActivateWindow("Параметры EPS")
-   ;ConsoleWrite("Активировали окошко")
    If $version == "2015" Then
 	  SetParameters2015()
    ElseIf $version = "2017" Then
@@ -120,7 +107,14 @@ Func SetParameters2018()
    Send("{ENTER}")
 EndFunc
 
-Func GetSavePath($fileName, $saveFolder)
+Func GetSavePath($fileName)
+   Local $sDrive = "", $sDir = "", $sFileName = "", $sExtension = ""
+   Local $aPathSplit = _PathSplit($fileName, $sDrive, $sDir, $sFileName, $sExtension)
+   ;ConsoleWrite($saveFolder & "\" &  $aPathSplit[3] & ".eps")
+   Return  "%ILL_OUTPUT%" &  $aPathSplit[3] & ".eps"
+EndFunc
+
+Func GetSavePathFull($fileName, $saveFolder)
    Local $sDrive = "", $sDir = "", $sFileName = "", $sExtension = ""
    Local $aPathSplit = _PathSplit($fileName, $sDrive, $sDir, $sFileName, $sExtension)
    ;ConsoleWrite($saveFolder & "\" &  $aPathSplit[3] & ".eps")

@@ -1,10 +1,12 @@
+#AutoIt3Wrapper_Change2CUI=y
+
 #include <File.au3>
+
 Opt("WinTitleMatchMode", 2) ; определяем способ узнавания окна по любой части
 Opt("SendKeyDelay", 20)
-
+;HotKeySet("^{ESC}", "Terminate")
 ;$illustratorWindow = "Adobe Illustrator CC 2015.3"
 $illustratorWindow = "Adobe Illustrator"
-
 $inputFolder = FileSelectFolder("Выберите папку с файлами которые надо уменьшить", "")
 $outputFolder = FileSelectFolder("Выберите папку, куда файлы будут сохраняться", "")
 If @error Then
@@ -40,22 +42,17 @@ For $i = 1 To $FileList[0]
 Func OpenFile(ByRef $fileName)
    Send("^o")
    WinWaitActive("Открыть")
-   OpenFileFunc($fileName)
-EndFunc
-
-Func OpenFileFunc(ByRef $fileName)
-   While Not (StringInStr(ControlGetText("Открыть", "","[CLASSNN:Edit1]"), ":"))
-	  ControlSetText("Открыть", "","[CLASSNN:Edit1]", $fileName)
-	  Sleep(500)
-   WEnd
+   ControlSetText("Открыть", "","[CLASSNN:Edit1]", $fileName)
+   Sleep(2000)
    ControlClick("Открыть", "", "[CLASSNN:Button1]")
-   Sleep(500)
-   If WinExists("Открыть", "ОК") Then
+   Sleep(1000)
+   If WinExists("Открыть", "") Then
 	  ConsoleWrite("Error opening file" & @LF)
-	  ControlClick("Открыть", "", "[CLASS:Button; TEXT:ОК; INSTANCE:1]")
-	  OpenFileFunc($fileName)
+	  Send("{ESCAPE 2}")
+	  OpenFile($fileName)
    EndIf
 EndFunc
+
 
 Func SaveFile(ByRef $fileName)
    While WinWaitActive("Сохранить как", "", 1) == 0
@@ -65,8 +62,8 @@ Func SaveFile(ByRef $fileName)
    Local $newFileName = GetSavePath($fileName, $outputFolder)
    ControlSetText("Сохранить как", "","[CLASSNN:Edit1]",$newFileName)
    ControlCommand("Сохранить как", "","[CLASS:Combobox; INSTANCE:2]", "SelectString", "Illustrator EPS (*.EPS)")
-   ;ControlClick("Сохранить как", "", "[CLASSNN:Button4]")
-   ControlClick("Сохранить как", "", "[CLASS:Button; TEXT:Со&хранить; INSTANCE:1]")
+   ;ControlClick("Сохранить как", "", "[CLASSNN:Button1]")
+   Send("{ENTER}")
    ;ConsoleWrite("Начало ожидания окна с настройками сохранения")
    ActivateWindow("Параметры EPS")
    ;ConsoleWrite("Активировали окошко")
@@ -156,4 +153,8 @@ Func WaitForFile($fileName)
    While FileExists ($fileName) == 0
 	  Sleep(100)
    WEnd
+EndFunc
+
+Func Terminate()
+    Exit 0
 EndFunc

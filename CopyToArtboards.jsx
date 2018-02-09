@@ -46,9 +46,14 @@ main();
                              places[a].selected = true;
                              var tempArtBoardBG = material.artboards.add(places[a].geometricBounds);
                              material.fitArtboardToSelectedArt(lastIndex+1);  
-                                
-                             var offsetX = tempArtBoard.artboardRect[0] - tempArtBoardBG.artboardRect[0];  
-                             var offsetY = tempArtBoard.artboardRect[1] - tempArtBoardBG.artboardRect[1];  
+                             
+                             var center1X = tempArtBoard.artboardRect[0] + (tempArtBoard.artboardRect[2] - tempArtBoard.artboardRect[0])/2;
+                             var center1y = tempArtBoard.artboardRect[1] + (tempArtBoard.artboardRect[3] - tempArtBoard.artboardRect[1])/2;
+                             var center2X = tempArtBoardBG.artboardRect[0] + (tempArtBoardBG.artboardRect[2] - tempArtBoardBG.artboardRect[0])/2;
+                             var center2Y = tempArtBoardBG.artboardRect[1] + (tempArtBoardBG.artboardRect[3] - tempArtBoardBG.artboardRect[1])/2;
+                            
+                             var offsetX = center1X - center2X;  
+                             var offsetY = center1Y - center2Y;  
                              moved.translate(offsetX, offsetY);  
                              tempArtBoardBG.remove(); 
                              tempArtBoard.remove();  

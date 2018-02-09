@@ -240,12 +240,12 @@ function main() {
                                 var artHeight = app.activeDocument.height;
                                 if (artWidth<=artHeight) 
                                  { 
-                                    var DocW = ((5000*100)/artWidth).toFixed(2);
+                                    var DocW = ((3010*100)/artWidth).toFixed(2);
                                     var DocH = DocW;
                                    }
                                 else
                                 {  
-                                   var DocH = ((5000*100)/artHeight).toFixed(2);      
+                                   var DocH = ((3010*100)/artHeight).toFixed(2);      
                                    var DocW = DocH;
                                     
                                 }

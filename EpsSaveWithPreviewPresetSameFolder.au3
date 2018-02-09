@@ -5,8 +5,7 @@ Opt("SendKeyDelay", 20)
 ;$illustratorWindow = "Adobe Illustrator CC 2015.3"
 $illustratorWindow = "Adobe Illustrator"
 
-$inputFolder = FileSelectFolder("Выберите папку с файлами которые надо уменьшить", "")
-$outputFolder = FileSelectFolder("Выберите папку, куда файлы будут сохраняться", "")
+$inputFolder = FileSelectFolder("Выберите папку с файлами", "")
 If @error Then
         MsgBox($MB_SYSTEMMODAL, "", "No folder was selected.")
 	    Exit 0
@@ -30,46 +29,39 @@ EndIf
 
 
 For $i = 1 To $FileList[0]
-    If FileExists (GetSavePath($FileList[$i], $outputFolder)) Then ContinueLoop
+   If StringLeft(GetFileName($FileList[$i]), 2) == "0_" Then ContinueLoop
+   If FileExists ($inputFolder & "\0_" & GetFileName($FileList[$i])) Then ContinueLoop
     OpenFile($FileList[$i])
 	SaveFile($FileList[$i])
-	CloseFile($FileList[$i])
+	CloseFile2($FileList[$i])
  Next
 
 
 Func OpenFile(ByRef $fileName)
+   ActivateWindow($illustratorWindow)
    Send("^o")
    WinWaitActive("Открыть")
-   OpenFileFunc($fileName)
-EndFunc
-
-Func OpenFileFunc(ByRef $fileName)
-   While Not (StringInStr(ControlGetText("Открыть", "","[CLASSNN:Edit1]"), ":"))
-	  ControlSetText("Открыть", "","[CLASSNN:Edit1]", $fileName)
-	  Sleep(500)
-   WEnd
+   ControlSetText("Открыть", "","[CLASSNN:Edit1]", $fileName)
    ControlClick("Открыть", "", "[CLASSNN:Button1]")
-   Sleep(500)
-   If WinExists("Открыть", "ОК") Then
-	  ConsoleWrite("Error opening file" & @LF)
-	  ControlClick("Открыть", "", "[CLASS:Button; TEXT:ОК; INSTANCE:1]")
-	  OpenFileFunc($fileName)
-   EndIf
 EndFunc
 
 Func SaveFile(ByRef $fileName)
    While WinWaitActive("Сохранить как", "", 1) == 0
-	  Send("^S")
+	  If WinActive(GetFileName($fileName)) Then
+		 Send("^S")
+	  Else
+         ActivateWindow (GetFileName($fileName))
+		 Send("^S")
+	  EndIf
 	  Sleep(1000)
    WEnd
-   Local $newFileName = GetSavePath($fileName, $outputFolder)
+   Local $newFileName = GetSaveName($fileName)
    ControlSetText("Сохранить как", "","[CLASSNN:Edit1]",$newFileName)
    ControlCommand("Сохранить как", "","[CLASS:Combobox; INSTANCE:2]", "SelectString", "Illustrator EPS (*.EPS)")
-   ;ControlClick("Сохранить как", "", "[CLASSNN:Button4]")
+   Send("{TAB 2}")
+   Sleep(300)
    ControlClick("Сохранить как", "", "[CLASS:Button; TEXT:Со&хранить; INSTANCE:1]")
-   ;ConsoleWrite("Начало ожидания окна с настройками сохранения")
    ActivateWindow("Параметры EPS")
-   ;ConsoleWrite("Активировали окошко")
    If $version == "2015" Then
 	  SetParameters2015()
    ElseIf $version = "2017" Then
@@ -120,11 +112,16 @@ Func SetParameters2018()
    Send("{ENTER}")
 EndFunc
 
-Func GetSavePath($fileName, $saveFolder)
+Func GetSaveNameFull($fileName)
    Local $sDrive = "", $sDir = "", $sFileName = "", $sExtension = ""
    Local $aPathSplit = _PathSplit($fileName, $sDrive, $sDir, $sFileName, $sExtension)
-   ;ConsoleWrite($saveFolder & "\" &  $aPathSplit[3] & ".eps")
-   Return $saveFolder & "\" &  $aPathSplit[3] & ".eps"
+   Return $aPathSplit[1] & $aPathSplit[2] & "0_" & $aPathSplit[3] & ".eps"
+EndFunc
+
+Func GetSaveName($fileName)
+   Local $sDrive = "", $sDir = "", $sFileName = "", $sExtension = ""
+   Local $aPathSplit = _PathSplit($fileName, $sDrive, $sDir, $sFileName, $sExtension)
+   Return "0_" & $aPathSplit[3] & ".eps"
 EndFunc
 
 Func GetFileName($fileName)
@@ -145,11 +142,20 @@ Func CloseFile($fileName)
    ActivateWindow(GetFileName($fileName))
    Send("^w")
    While WinWaitActive($illustratorWindow) == 0
-	  WinActivate ($title)
+	  WinActivate (GetFileName($fileName))
 	  Sleep(100)
 	  Send("^w")
    WEnd
 EndFunc
+
+Func CloseFile2($fileName)
+   Send("^w")
+   While WinWaitActive($illustratorWindow) == 0
+	  Sleep(100)
+	  Send("^w")
+   WEnd
+EndFunc
+
 
 
 Func WaitForFile($fileName)

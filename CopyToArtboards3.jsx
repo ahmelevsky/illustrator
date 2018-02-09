@@ -63,17 +63,15 @@ var actionStr = [
 "}",
 ].join("\n");
    
-  
-  
- 
+
 main();  
 
-  
   
   function main(){
     var templFolder = Folder.selectDialog( 'Выберите папку с фонами' );  
     var inFolder = Folder.selectDialog( 'Выберите папку с материалами для вставки' );    
     var outFolder = Folder.selectDialog( 'Выберите папку куда сохранять' );
+    var suffix = 0;
     if (templFolder == null|| inFolder == null || outFolder == null ) {  
          alert ("Вы не выбрали папки");
         return;
@@ -81,12 +79,9 @@ main();
     
     var templFiles = templFolder.getFiles(/\.(ai|eps|pdf)$/i);   
     var pasteFiles = inFolder.getFiles(/\.(ai|eps|pdf)$/i);  
-    
-  
-  
-    for (var i=0;i<templFiles.length;i++){ 
-         var suffix = 1929;
-         templ = app.open(templFiles[i]);   
+    for (var i=0;i<templFiles.length;i++){   
+             for (var j=0;j<pasteFiles.length;j++){   
+                    templ = app.open(templFiles[i]);   
                     var places = [];
                     for (var p=1;p<50;p++){   
                     try {
@@ -96,100 +91,40 @@ main();
                         break;
                     }
                 }
-            
-          for (var p=0;p<pasteFiles.length;p++){ 
-              
-          for (var a=0;a<places.length;a++){  
-             
-             var fname = pasteFiles[p].name.slice(0, -4);
-             var filePath = new File(outFolder.fsName+'/' + fname + '_' + pad(a+1, 2) + '.eps'); 
-               if (filePath.exists) continue;
-             
-             templ.selection = null;
-             places[a].selected = true;             
-             
-             app.copy();               
-             var material  = app.open(pasteFiles[p]);
-             app.paste();
-              var group = material.groupItems.add();                
-                group.name = "PlacedGroup";
-                group.move(material,  ElementPlacement.PLACEATEND);
-                for ( s = 0; s < material.selection.length; s++ ) 
-                    material.selection[s].moveToEnd( group );
-                    
-             align();
-         
-               
-                
-                material.selection = null; 
-                  
-                material.saveAs(filePath , saveAsEpsFile());  
-                material.close(SaveOptions.DONOTSAVECHANGES);   
-                }        
-            }    
-          templ.close(SaveOptions.DONOTSAVECHANGES);  
-    }
-}
- 
-function pad(num, size) {
-    var s = num+"";
-    while (s.length < size) s = "0" + s;
-    return s;
-} 
- 
-function align(){
- var actFileDestStr = Folder.desktop  + "/AlignAction.aia";  
-                               
-                                var f = new File(actFileDestStr);
-                                    f.open('w');
-                                    f.write(this.actionStr);
-                                    f.close();
-                                                         
-                                app.loadAction(f);  
-                                app.doScript("выравнивание", "my",true);  
-                                app.unloadAction("my", ''); 
-                                f.remove();     
-    
-    }
- 
+                 
+                var material = app.open(pasteFiles[j]);   
+                var material_items = getTop(material);
+                unlock(material.layers);
+                app.activeDocument = templ;
+                     for (var a=0;a<places.length;a++){  
+                             var moved = moveObject(material_items, templ.layers[0]); 
+                             moved.position = places[a].position;
+                             moved.selected = true;  
+                             
+                             var tempArtBoard = templ.artboards.add(moved.geometricBounds);  
+                             app.activeDocument = templ;
+                             var lastIndex = templ.artboards.length-1;
+                             templ.fitArtboardToSelectedArt(lastIndex);  
 
-function pasteClipboardToPlace(placedoc, gbb){
-                placedoc.activate();
-                
-                
-                var ccx = gbb[0] + (gbb[2] - gbb[0]) / 2;  
-                var ccy = gbb[1] + (gbb[3] - gbb[1]) / 2;  
-  
-                placedoc.views[0].centerPoint = [ccx, ccy]; 
-                
-                app.paste();
-                var sb = placedoc.selection[0].geometricBounds;
-                var tempArtBoard = placedoc.artboards.add(sb);  
-                var lastIndex = placedoc.artboards.length-1;
-                placedoc.fitArtboardToSelectedArt(lastIndex); 
-                var agb = tempArtBoard.artboardRect;
-                
-                var offX =  gbb[0] - agb[0];    
-                var offY =  gbb[1] - agb[1]; 
-                
-                app.cut();  
-  
-                placedoc.views[0].centerPoint = [Math.ceil(ccx+offX), Math.ceil(ccy+offY)];  
-                app.paste();                  
-                
-                var group = placedoc.groupItems.add();                
-                group.name = "PlacedGroup";
-                group.move(placedoc,  ElementPlacement.PLACEATEND);
-                for ( s = 0; s < placedoc.selection.length; s++ ) 
-                    placedoc.selection[s].moveToEnd( group );
-                
-                placedoc.selection = null;
-                tempArtBoard.remove();  
-                
-    
-    } 
- 
- 
+                             moved.selected = false;
+                             places[a].selected = true;
+                             var tempArtBoardBG = material.artboards.add(places[a].geometricBounds);
+                             material.fitArtboardToSelectedArt(lastIndex+1);  
+                                
+                             var offsetX = tempArtBoard.artboardRect[0] - tempArtBoardBG.artboardRect[0];  
+                             var offsetY = tempArtBoard.artboardRect[1] - tempArtBoardBG.artboardRect[1];  
+                             moved.translate(offsetX, offsetY);  
+                             tempArtBoardBG.remove(); 
+                             tempArtBoard.remove();  
+                }
+                material.close(SaveOptions.DONOTSAVECHANGES);   
+                var fname = templ.name.slice(0, -3);
+                var filePath = new File(outFolder.fsName+'/' + fname + '_' + suffix++);   
+                templ.saveAs(filePath , saveArtboardsAsEpsFile(templ));  
+                templ.close(SaveOptions.DONOTSAVECHANGES);  
+            }    
+    }
+  }
  
   function getTop(document){
        for (k=0; k<document.pageItems.length; k++) {
@@ -206,12 +141,6 @@ function pasteClipboardToPlace(placedoc, gbb){
          }
      return elements;
      }
- 
-  function moveObjectEnd(sel, dest) {  
-        return sel.duplicate(dest,ElementPlacement.PLACEATEND);  
- }
- 
- 
  
   function moveObject(sel, dest) {  
         return sel.duplicate(dest,ElementPlacement.PLACEATBEGINNING);  
@@ -265,7 +194,7 @@ function saveAsEpsFile() {
     embedLinkedFiles = false;
     includeDocumentThumbnails = false;
     embedAllFonts = false;
-    saveMultipleArtboards = false;
+    saveMultipleArtboards = true;
     cmykPostScript = false;
    preview = EPSPreview.None; 
      }  
