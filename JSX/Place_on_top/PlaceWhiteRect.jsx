@@ -85,17 +85,25 @@ main();
           
             
           for (var p=0;p<pasteFiles.length;p++){ 
+             var filePath = new File(outFolder.fsName+'/' + pasteFiles[p].name);  
+               if (filePath.exists) continue;
+              
+              
              app.executeMenuCommand ('selectall');
              app.copy();              
              var material  = app.open(pasteFiles[p]);
              app.paste();
              align();
-             var filePath = new File(outFolder.fsName+'/' + material.name);   
              material.saveAs(filePath , saveAsEpsFile());  
              material.close(SaveOptions.DONOTSAVECHANGES);   
             }    
           templ.close(SaveOptions.DONOTSAVECHANGES);  
 }
+
+function getFileNameWithoutExtension(filename){
+ return filename.substring(0, filename.lastIndexOf('.'))
+    }
+ 
  
 function align(){
  var actFileDestStr = Folder.desktop  + "/AlignAction.aia";  

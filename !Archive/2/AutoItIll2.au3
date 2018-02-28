@@ -66,6 +66,8 @@ Func SaveFile(ByRef $fileName)
    Send("{ENTER}")
    ;ConsoleWrite("Начало ожидания окна с настройками сохранения")
    ActivateWindow("Параметры EPS")
+   ActivateWindow($illustratorWindow)
+   Sleep(1000)
    ;ConsoleWrite("Активировали окошко")
    If $version == "2015" Then
 	  SetParameters2015()
