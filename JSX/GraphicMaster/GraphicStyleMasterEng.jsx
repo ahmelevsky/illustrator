@@ -78,7 +78,11 @@ function Main() {
        
         };
  };  
-
+function pad(num, size) {
+    var s = num+"";
+    while (s.length < size) s = "0" + s;
+    return s;
+}
 
 function createClippingMasks(docRef){
     
@@ -89,7 +93,7 @@ function createClippingMasks(docRef){
      app.executeMenuCommand ('group');
      //После группировки нулевой элемент выделения - сама группа     
      var group = docRef.selection[0];
-     
+     group = getTopGroup(group);
      var top=docRef.artboards[artindex].artboardRect[1] ;  
      var left=docRef.artboards[artindex].artboardRect[0];  
      var width=docRef.artboards[artindex].artboardRect[2]-docRef.artboards[artindex].artboardRect[0];  
@@ -104,15 +108,13 @@ function createClippingMasks(docRef){
     
     }
 
- 
-  function getTopGroups(document){
-      var topGroups = [];
-       for (k=0; k<document.groupItems.length; k++) {
-         if (document.groupItems[k].parent.typename == "Layer")
-            topGroups.push(document.groupItems[k]);
-         }
-       return topGroups;
-      }
+
+ function getTopGroup(element){
+       if (element.typename == 'GroupItem' && element.parent.typename == "Layer")
+       return element;
+       else return getTopGroup(element.parent);
+       }
+
 
 function saveArtboardsAsEpsFile(docum) {  
      var epsOptions = new EPSSaveOptions();  

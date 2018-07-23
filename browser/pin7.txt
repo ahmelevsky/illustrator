@@ -1,0 +1,77 @@
+var datepath = "//table[contains(@class, 'tbm')]/tbody/tr/td[@class='tdm_01']/font[@color='#999999']/text()";
+
+
+function hideOlderThan(hours) {
+	var rows = getElementsByXPathArr("//table[contains(@class, 'tbm')]/tbody/tr/td[@class='tdm_04']/..");
+    for (i=0;i<rows.length;i++){
+	var time = document.evaluate("./td[@class='tdm_01']/font[@color='#999999']/text()[1]", rows[i], null, XPathResult.STRING_TYPE, null).stringValue;
+    var date = document.evaluate("./td[@class='tdm_01']/font[@color='#999999']/text()[2]", rows[i], null, XPathResult.STRING_TYPE, null).stringValue;
+	var startDate = new Date();
+	var d = date.split('.');
+	var ddate = '20'.concat(d[2],'-',d[1],'-',d[0],'T',time);
+    var thisDate = new Date(ddate);
+	startDate.setHours(startDate.getHours() - hours);
+	if (thisDate.getTime() < startDate.getTime())
+	rows[i].remove();
+	}
+}
+hideOlderThan(24);
+
+var xpath = "//table[contains(@class, 'tbm')]/tbody/tr[descendant::td[contains(@class, 'tdm')]//text()[contains(.,'Без/Жив')] or descendant::td[contains(@class, 'tdm')]//text()[contains(.,'м.тр.')] or descendant::td[contains(@class, 'tdm')]//text()[boolean(number(substring-before(substring-after(., '1/'), ' эт')))]]";
+makeInvisible(xpath);
+
+function makeInvisible(path){
+ var elemen  = getElementByXpath(path);
+ while (elemen) {
+  elemen.parentNode.removeChild(elemen);
+  elemen  = getElementByXpath(path);
+}
+}
+
+//table[contains(@class, 'tbm')]/tbody/tr[descendant::td[contains(@class, 'tdm')]//*[matches(text(),'1\d+ эт')]
+
+function hideFlatsLessThan(meters) {
+	var rows = getElementsByXPathArr("//table[contains(@class, 'tbm')]/tbody/tr/td[@class='tdm_04']/..");
+    //var sizes = "//table[contains(@class, 'tbm')]/tbody/tr/td[@class='tdm_04']/strong/text()";
+    for (i=0;i<rows.length;i++){
+	var size = document.evaluate("./td[@class='tdm_04']/strong/text()", rows[i], null, XPathResult.STRING_TYPE, null);
+	var s;
+	s =	parseInt(size.stringValue);
+	if (s && s<meters)
+	rows[i].remove();
+	}
+}
+function getElementsByXPathArr(xpath, parent)
+{
+  let results = [];
+  let query = document.evaluate(xpath,
+      parent || document,
+      null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+  for (let i=0, length=query.snapshotLength; i<length; ++i) {
+    results.push(query.snapshotItem(i));
+  }
+  return results;
+}
+hideFlatsLessThan(40);
+
+function getElementByXpath(path) {
+  return document.evaluate(path, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+}
+
+function getElementsByXpath(path) {
+  return document.evaluate(path, document, null, XPathResult.ANY_TYPE, null);
+}
+
+
+
+function getElementsByXPathArr(xpath, parent)
+{
+  let results = [];
+  let query = document.evaluate(xpath,
+      parent || document,
+      null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+  for (let i=0, length=query.snapshotLength; i<length; ++i) {
+    results.push(query.snapshotItem(i));
+  }
+  return results;
+}

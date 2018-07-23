@@ -126,8 +126,13 @@ main();
                   templ = app.open(template);  
                   templ.activate();
                 }
-            
-                 for (var i=templ.layers.length-1;i>=0;i--){             
+                 var materials = [];
+                 for (var i=templ.layers.length-1;i>=0;i--){  
+                     
+                    if (i==0)
+                       addFakeObjectAndAlign(templ);                            
+                    
+                    templ.activate(); 
                     if (templ.layers[i].name[0]=='0') {
                         baseImage.activate();
                         baseImage.selection = null;
@@ -142,6 +147,7 @@ main();
                     else {
                         var imageFile = randomElement(getFolderByName(materialFolders, templ.layers[i].name).getFiles(/\.(ai|eps)$/i));
                         var image = app.open(imageFile);
+                        materials.push(image);
                         var imageElement = randomElement(getElementsWithGNum(image, 50));
                         image.selection = null;
                         imageElement.selected = true;
@@ -151,7 +157,6 @@ main();
                         templ.activeLayer = templ.layers[i];
                         app.paste();
                         align();
-                        image.close(SaveOptions.DONOTSAVECHANGES);
                         }
                  }
                  
@@ -162,7 +167,11 @@ main();
                       templ.saveAs(filePath, saveAsEpsFile());  
                   else 
                       templ.saveAs(filePath);  
-                 templ.close(SaveOptions.DONOTSAVECHANGES); 
+                  templ.close(SaveOptions.DONOTSAVECHANGES); 
+                 
+                  for (m=0; m<materials.length; m++)
+                      materials[m].close(SaveOptions.DONOTSAVECHANGES);  
+                  
            }
            baseImage.close(SaveOptions.DONOTSAVECHANGES);
            if (isDelete)
@@ -170,6 +179,23 @@ main();
      }
     
     }
+
+
+function addFakeObjectAndAlign(maindoc){
+      maindoc.activate();
+      maindoc.selection = null;
+      var newDoc = app.documents.add();
+      var rect = newDoc.pathItems.rectangle(1,1,100,100);
+      newDoc.activate();
+      app.executeMenuCommand("selectall");  
+      app.copy();     
+      maindoc.activate();
+      app.paste();
+      align();
+      maindoc.selection[0].remove();
+      newDoc.close(SaveOptions.DONOTSAVECHANGES);  
+    }
+
 
 function pad(num, size) {
     var s = num+"";
@@ -260,6 +286,7 @@ function getSubFolders(theFolder) {
       return result;
 }
 
+
 function getFolderByName(folders, name){
       for (var i = 0; i < folders.length; i++) {
             var f = new Folder(folders[i]);
@@ -284,7 +311,6 @@ function getElementsWithGNum(docum, limit){
           var group = docum.groupItems.add();                
              group.name = "All";
              app.executeMenuCommand("selectall"); 
-             group.selected = false;
              for ( s = 0; s < docum.selection.length; s++ ) {
                    try{
                     docum.selection[s].moveToEnd( group );      

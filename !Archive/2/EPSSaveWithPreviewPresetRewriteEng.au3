@@ -16,7 +16,7 @@ If Ubound($FileList) == 0 Then
    MsgBox($MB_SYSTEMMODAL, "", "No EPS files in the folder.")
 	    Exit 0
 EndIf
-
+Sleep(3000)
 ActivateWindow($illustratorWindow)
 $version = "";
 $fullTitle = WinGetTitle($illustratorWindow)

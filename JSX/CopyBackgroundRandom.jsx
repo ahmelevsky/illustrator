@@ -71,9 +71,11 @@ main();
   
   
   function main(){
-    var templFolder = Folder.selectDialog( 'Выберите папку с изображениями которые будут располагаться на переднем плане' );  
-    var inFolder = Folder.selectDialog( 'Выберите папку с фонами', templFolder);    
-    var outFolder = Folder.selectDialog( 'Выберите папку куда сохранять', inFolder);
+    var templFolder = Folder.selectDialog( 'Выберите папку с фонами' );  
+    var inFolder = Folder.selectDialog( 'Выберите папку с материалами' );    
+    var outFolder = Folder.selectDialog( 'Выберите папку куда сохранять' );
+    var backgroundsCount = Number(prompt ('Сколько фонов из одного файла использовать для каждой картинки?', 1, 'Вопрос')); 
+    
     if (templFolder == null|| inFolder == null || outFolder == null ) {  
          alert ("Вы не выбрали папки");
         return;
@@ -81,42 +83,64 @@ main();
     
     var templFiles = templFolder.getFiles(/\.(ai|eps|pdf)$/i);   
     var pasteFiles = inFolder.getFiles(/\.(ai|eps|pdf)$/i);  
-    
+    var folderName = null;
   
   
-    for (var i=0;i<templFiles.length;i++){ 
-         var suffix = 1;
-         templ = app.open(templFiles[i]);   
+    for (var i=0;i<templFiles.length;i++){
+         
+         templ = app.open(templFiles[i]);  
+         folderName = getFileNameWithoutExtension(templFiles[i].name);
+         var f = new Folder(outFolder.fsName+'/' + folderName);
+         if (!f.exists)
+             f.create();
+             
          var places = getElementsWithGNum(templ, 50);
-            
+         var backCount = backgroundsCount;
+         if (places.length<backCount)
+                 backCount = places.length;
+               
           for (var p=0;p<pasteFiles.length;p++){ 
+              
+          var backs = places.slice();              
+              
+          for (var a=0;a<backCount;a++){  
+             
+             var fname = getFileNameWithoutExtension(pasteFiles[p].name);
+             var filePath = new File(outFolder.fsName+'/' + folderName + '/' + fname + '_' + pad(a+1, 2) + '.eps'); 
+               if (filePath.exists) continue;
              
              templ.selection = null;
-             places[Math.floor(Math.random() * places.length)].selected = true;             
+             var back_to_select = randomElementAndRemove(backs);
+             back_to_select.selected = true;             
              
              app.copy();               
              var material  = app.open(pasteFiles[p]);
              app.paste();
+             
+             app.executeMenuCommand ('group');
+             
+              var group = material.selection[0];               
+              group.name = "PlacedGroup";
+              group.move(material,  ElementPlacement.PLACEATEND);
+                    
              align();
-         
-               
                 
-                material.selection = null; 
-                var filePath = new File(outFolder.fsName+'/' + material.name);   
-                material.saveAs(filePath , saveAsEpsFile());  
-                material.close(SaveOptions.DONOTSAVECHANGES);   
+             material.selection = null; 
+                 
+             material.saveAs(filePath , saveAsEpsFile());  
+             material.close(SaveOptions.DONOTSAVECHANGES);   
+                }        
             }    
           templ.close(SaveOptions.DONOTSAVECHANGES);  
     }
 }
  
- 
 function pad(num, size) {
     var s = num+"";
     while (s.length < size) s = "0" + s;
     return s;
-}
-
+} 
+ 
 function align(){
  var actFileDestStr = Folder.desktop  + "/AlignAction.aia";  
                                
@@ -132,109 +156,21 @@ function align(){
     
     }
  
+ 
+ function getFileNameWithoutExtension(filename){
+ return filename.substring(0, filename.lastIndexOf('.'))
+    }
 
-function pasteClipboardToPlace(placedoc, gbb){
-                placedoc.activate();
-                
-                
-                var ccx = gbb[0] + (gbb[2] - gbb[0]) / 2;  
-                var ccy = gbb[1] + (gbb[3] - gbb[1]) / 2;  
-  
-                placedoc.views[0].centerPoint = [ccx, ccy]; 
-                
-                app.paste();
-                var sb = placedoc.selection[0].geometricBounds;
-                var tempArtBoard = placedoc.artboards.add(sb);  
-                var lastIndex = placedoc.artboards.length-1;
-                placedoc.fitArtboardToSelectedArt(lastIndex); 
-                var agb = tempArtBoard.artboardRect;
-                
-                var offX =  gbb[0] - agb[0];    
-                var offY =  gbb[1] - agb[1]; 
-                
-                app.cut();  
-  
-                placedoc.views[0].centerPoint = [Math.ceil(ccx+offX), Math.ceil(ccy+offY)];  
-                app.paste();                  
-                
-                var group = placedoc.groupItems.add();                
-                group.name = "PlacedGroup";
-                group.move(placedoc,  ElementPlacement.PLACEATEND);
-                for ( s = 0; s < placedoc.selection.length; s++ ) 
-                    placedoc.selection[s].moveToEnd( group );
-                
-                placedoc.selection = null;
-                tempArtBoard.remove();  
-                
-    
-    } 
- 
- 
- 
-  function getTop(document){
-       for (k=0; k<document.pageItems.length; k++) {
-         if (document.pageItems[k].parent.typename == "Layer")
-             return document.pageItems[k];
-         }
-      }
- 
- function getAll(document){
-     var elements = [];
-     for (k=0; k<document.pageItems.length; k++) {  
-         if (document.pageItems[k].parent.typename == "Layer")
-             elements.push(document.pageItems[k]);
-         }
-     return elements;
-     }
- 
-  function moveObjectEnd(sel, dest) {  
-        return sel.duplicate(dest,ElementPlacement.PLACEATEND);  
- }
- 
- 
- 
-  function moveObject(sel, dest) {  
-        return sel.duplicate(dest,ElementPlacement.PLACEATBEGINNING);  
- }
- 
- function moveObjects(sel, dest, group) {  
-    var elements = []    
-    for (k=sel.length-1; k>=0; k--) {   
-        var el =sel[k].duplicate(dest,ElementPlacement.PLACEATBEGINNING);  
-        el.moveToBeginning( group );
-        elements.push(el);
-    }  
-  return elements;
- }
-  
+function randomElement(arr) {
+	return arr[Math.floor(Math.random() * arr.length)];
+}
 
-function unlock ( items ) {  
-    var i = items.length;  
-    if ( i ) {  
-        while ( i-- ) {  
-            if (items[i] == undefined) continue;
-            items[i].locked = false;  
-            if ( items[i].typename === 'GroupItem' ) {  
-                unlock( items[i].pageItems );  
-            }  
-                else if ( items[i].typename === 'Layer' ) {  
-                    unlock( items[i].layers );  
-                    unlock( items[i].pageItems );  
-                }  
-        }  
-    } 
-   else {
-        if (items == undefined) return;
-          items.locked = false;  
-            if ( items.typename === 'GroupItem' ) {  
-                unlock( items.pageItems );  
-            }  
-                else if ( items.typename === 'Layer' ) {  
-                    unlock( items.layers );  
-                    unlock( items.pageItems );  
-                }  
-       }
-}  
+function randomElementAndRemove(arr) {
+    var num = Math.floor(Math.random() * arr.length);
+    var el = arr[num]; 
+    arr.splice(num, 1);
+	return el;
+}
 
 
 function saveAsEpsFile() {  

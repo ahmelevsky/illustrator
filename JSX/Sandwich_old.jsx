@@ -1,5 +1,4 @@
-﻿#target illustrator
-
+﻿#target Illustrator  
 
 var actionStr = [ 
 "/version 3",
@@ -63,78 +62,83 @@ var actionStr = [
 "}",
 ].join("\n");
    
-  
-  
- 
-main();  
 
+
+ while (app.documents.length) {  
+  app.activeDocument.close(SaveOptions.PROMPTTOSAVECHANGES);  
+}  
+main();  
   
   
   function main(){
-    var templFolder = Folder.selectDialog( 'Выберите папку с фонами' );  
-    var inFolder = Folder.selectDialog( 'Выберите папку с материалами' );    
-    var outFolder = Folder.selectDialog( 'Выберите папку куда сохранять' );
-    if (templFolder == null|| inFolder == null || outFolder == null ) {  
-         alert ("Вы не выбрали папки");
-        return;
+    var templateFile = File.openDialog ('Выберите template' );  
+    templ = app.open(templateFile);   
+    var materialFolders = [];
+    for (var i=templ.layers.length-1;i>=0;i--){
+          materialFolders.push(Folder.selectDialog( 'Выберите папку с фонами для слоя ' + templ.layers[i].name));      
         }
+    var outFolder = Folder.selectDialog( 'Выберите папку куда сохранять' );
+    var isRandom = confirm('Использовать случайный порядок материалов?');
+    var isDelete = confirm('Удалять файлы материалов после использования?');
     
-    var templFiles = templFolder.getFiles(/\.(ai|eps|pdf)$/i);   
-    var pasteFiles = inFolder.getFiles(/\.(ai|eps|pdf)$/i);  
+    var fname = getFileNameWithoutExtension(templateFile.name);
+    var materials = [];
+    var maxfiles = 0;
+    for (var i=0; i<materialFolders.length; i++) {
+         materials.push(materialFolders[i].getFiles(/\.(ai|eps)$/i));   
+         if (maxfiles == 0 || materials[i].length < maxfiles) 
+            maxfiles = materials[i].length;
+        }
+     
+     for (var i=0; i<maxfiles; i++) {
+          
+          for (var j=templ.layers.length-1;j>=0;j--) {
+                 var layerindex = templ.layers.length-1-j;
+                 var mat = materials[layerindex][i];
+                 if (isRandom)
+                      mat = randomElementAndRemove(materials[layerindex]);
+                 var material  = app.open(mat);     
+                 app.executeMenuCommand ('selectall');
+                 app.copy();
+                 templ.activate();
+                 templ.selection = null;
+                 templ.activeLayer = templ.layers[j];
+                 app.paste();
+                 align();
+                 material.close(SaveOptions.DONOTSAVECHANGES); 
+                 if (isDelete)
+                    mat.remove();
+              }
+           
+           var filePath = new File(outFolder.fsName+'/' + fname + '_' + pad(i+1, 3) + '.eps'); 
+           templ.saveAs(filePath , saveAsEpsFile());  
+           templ.close(SaveOptions.DONOTSAVECHANGES);   
+           if (i+1<maxfiles) 
+             templ = app.open(templateFile);
+         }
     
-  
-  
-    for (var i=0;i<templFiles.length;i++){ 
-         templ = app.open(templFiles[i]);   
-                    var places = [];
-                    for (var p=1;p<50;p++){   
-                    try {
-                        places.push(templ.pageItems.getByName("g"+p));
-                    }
-                    catch (err) {
-                        break;
-                    }
-                }
-            
-          for (var p=0;p<pasteFiles.length;p++){ 
-              
-          for (var a=0;a<places.length;a++){  
-             
-             var fname = getFileNameWithoutExtension(pasteFiles[p].name);
-             var filePath = new File(outFolder.fsName+'/' + fname + '_' + pad(a+1, 2) + '.eps'); 
-               if (filePath.exists) continue;
-             
-             templ.selection = null;
-             places[a].selected = true;             
-             
-             app.copy();               
-             var material  = app.open(pasteFiles[p]);
-             app.paste();
-             
-             app.executeMenuCommand ('group');
-             
-              var group = material.selection[0];               
-              group.name = "PlacedGroup";
-              group.move(material,  ElementPlacement.PLACEATEND);
-                    
-             align();
-                
-             material.selection = null; 
-                 
-             material.saveAs(filePath , saveAsEpsFile());  
-             material.close(SaveOptions.DONOTSAVECHANGES);   
-                }        
-            }    
-          templ.close(SaveOptions.DONOTSAVECHANGES);  
     }
-}
- 
+
 function pad(num, size) {
     var s = num+"";
     while (s.length < size) s = "0" + s;
     return s;
 } 
- 
+
+function randomElementAndRemove(arr) {
+    var num = Math.floor(Math.random() * arr.length);
+    var el = arr[num]; 
+    arr.splice(num, 1);
+	return el;
+}
+
+
+
+function getFileNameWithoutExtension(filename){
+ return filename.substring(0, filename.lastIndexOf('.'))
+    }
+
+
 function align(){
  var actFileDestStr = Folder.desktop  + "/AlignAction.aia";  
                                
@@ -149,11 +153,7 @@ function align(){
                                 f.remove();     
     
     }
- 
- 
- function getFileNameWithoutExtension(filename){
- return filename.substring(0, filename.lastIndexOf('.'))
-    }
+
 
 function saveAsEpsFile() {  
      var epsOptions = new EPSSaveOptions();  
@@ -184,3 +184,4 @@ function saveArtboardsAsEpsFile(docum) {
      }  
      return epsOptions;  
 }
+    

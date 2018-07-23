@@ -72,8 +72,8 @@ main();
   
   function main(){
     var templFolder = Folder.selectDialog( 'Выберите папку с изображениями которые будут располагаться на переднем плане' );  
-    var inFolder = Folder.selectDialog( 'Выберите папку с фонами' );    
-    var outFolder = Folder.selectDialog( 'Выберите папку куда сохранять' );
+    var inFolder = Folder.selectDialog( 'Выберите папку с фонами', templFolder);    
+    var outFolder = Folder.selectDialog( 'Выберите папку куда сохранять', outFolder);
     if (templFolder == null|| inFolder == null || outFolder == null ) {  
          alert ("Вы не выбрали папки");
         return;
@@ -87,17 +87,9 @@ main();
     for (var i=0;i<templFiles.length;i++){ 
          var suffix = 1;
          templ = app.open(templFiles[i]);   
-                    var places = [];
-                    for (var p=1;p<50;p++){   
-                    try {
-                        places.push(templ.pageItems.getByName("g"+p));
-                    }
-                    catch (err) {
-                        break;
-                    }
-                }
+         var places = getElementsWithGNum(templ, 50);
             
-          for (var p=0;p<pasteFiles.length;p++){ 
+         for (var p=0;p<pasteFiles.length;p++){ 
               
           for (var a=0;a<places.length;a++){  
              
@@ -245,3 +237,32 @@ function saveArtboardsAsEpsFile(docum) {
      }  
      return epsOptions;  
 }
+
+function getElementsWithGNum(docum, limit){
+     var l=1;     
+     var elements = []
+     while (l<=limit) {
+         try {
+              elements.push(docum.pageItems.getByName("g" + l++));
+              }
+         catch (exp) {
+              break;
+              }
+     }
+    if (elements.length==0){
+          var group = docum.groupItems.add();                
+             group.name = "All";
+             app.executeMenuCommand("selectall"); 
+             group.selected = false;
+             for ( s = 0; s < docum.selection.length; s++ ) {
+                   try{
+                    docum.selection[s].moveToEnd( group );      
+                    }
+                   catch  (exp)
+                   {
+                   }
+               }
+          elements.push(group);
+        }
+    return elements;
+    }

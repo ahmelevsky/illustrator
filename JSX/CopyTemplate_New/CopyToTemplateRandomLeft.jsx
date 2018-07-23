@@ -154,7 +154,7 @@ main();
              material.close(SaveOptions.DONOTSAVECHANGES);  
              tAB.remove();
         }
-        var filePath = new File(outFolder.fsName+'/' + template.name.slice(0, -3) + '_' + (++suffix));   
+         var filePath = new File(outFolder.fsName+'/' + getFileNameWithoutExtension(template.name) + '_' + pad(++suffix, 4));   
         template.saveAs(filePath, saveAsEpsFile());  
         template.close(SaveOptions.DONOTSAVECHANGES);  
     }
@@ -162,6 +162,16 @@ main();
   }
 
 
+
+function pad(num, size) {
+    var s = num+"";
+    while (s.length < size) s = "0" + s;
+    return s;
+} 
+ 
+ function getFileNameWithoutExtension(filename){
+ return filename.substring(0, filename.lastIndexOf('.'))
+    }
 
 
 function randomElement(arr) {
