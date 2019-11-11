@@ -1,0 +1,25 @@
+// ==UserScript==
+// @name          Shutterstock Keywords
+// @author        skillup (skillup.lj.ru)
+// @source        http://skillup.lj.ru
+// @version       1.3
+// @description   Easy to copy image keywords.
+// @include       https://www.shutterstock.com/image-vector/*
+// @include       https://www.shutterstock.com/image-photo/*
+// @include       https://www.shutterstock.com/image-illustration/*
+// ==/UserScript==
+
+(() => {
+    let parent = document.querySelectorAll('[data-automation="ExpandableKeywordsList_container_div"]')[0],
+        keywords = document.querySelectorAll('[data-automation="ExpandableKeywordsList_container_div"] > div > div ')[0].children,
+        newKeywords = document.createElement("p"),
+        keys = document.querySelectorAll('[data-automation="ExpandableKeywordsList_container_div"] > div')[0];
+
+    keywords = [...keywords].map(k => k.children[0].innerHTML).map(a => `<a href="/search/${a}">${a}</a>`);
+    newKeywords.innerHTML = `${keywords.length} keywords:<br>${keywords.join(', ')}`;
+    newKeywords.style.cssText = 'padding-left: 14px; text-align: left; line-height: 100%';
+
+    parent.appendChild(newKeywords);
+    parent.removeAttribute("style");
+    parent.removeChild(keys);
+})();

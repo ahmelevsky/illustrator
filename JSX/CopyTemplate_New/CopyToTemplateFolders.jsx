@@ -92,6 +92,7 @@ main();
    
     var workFolders = [];
     workFolders = getFoldersListRecursive(baseFolder, workFolders);  
+    workFolders.sort();
     for (var wF=0;wF<workFolders.length;wF++) {
     var suffix = 1;
     baseFolder =    workFolders[wF];
@@ -112,6 +113,7 @@ main();
     if (places.length<1)
              continue;
     var materialFolders = getSubFolders(baseFolder);
+    materialFolders.sort();
     if (materialFolders.length!=places.length)
              continue;
     
