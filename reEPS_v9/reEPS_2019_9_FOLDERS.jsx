@@ -1,0 +1,439 @@
+﻿var keyState = ScriptUI.environment.keyboardState;
+var alt = keyState.altKey;
+if (alt) {
+    metaXerox_only()
+} else {
+    main()
+}
+
+function main() {
+    app.userInteractionLevel = UserInteractionLevel.DONTDISPLAYALERTS;
+    try {
+        main();
+    } catch (exp) {
+        alert("Случилась ошибка!: \n" + exp);
+    }
+    app.userInteractionLevel = UserInteractionLevel.DISPLAYALERTS;
+}
+
+function metaXerox_only() {
+    var slash = getDelimiter();
+    var folderObj = new Folder();
+    var folder = folderObj.selectDlg("Только копирование метаданных! Выбери папку в которой лежат файлы");
+    if (!folder) {
+        return null;
+    }
+    var files = folder.getFiles("*.eps");
+    var errors = 0;
+    var processed = 0;
+    for (var i = 0; i < files.length; i += 1) {
+        try {
+            res = copypaste_meta(files[i]);
+            if (res) {
+                processed++
+            }
+        } catch (exp) {
+            alert(exp);
+            errors++;
+        }
+    }
+    if (errors > 0) {
+        alert("Случилось " + errors + " ошибок (и столько файлов не обработано)")
+    }
+    var bads = files.length - processed;
+    if (bads == 0) {
+        alert("Успешно обработанны все файлы: " + processed)
+    } else {
+        alert("Успешно обработанных файлов: " + processed + ". В оставшихся " + bads + " не нашлась мета или случились ошибки :(")
+    }
+}
+
+function copypaste_meta(fileName) {
+    var title = read_prop_from_file(fileName.fsName.replace(".eps", ".jpg"), "title");
+    var description = read_prop_from_file(fileName.fsName.replace(".eps", ".jpg"), "description");
+    var keywords = read_prop_from_file(fileName.fsName.replace(".eps", ".jpg"), "subject");
+    if (keywords != "" && description != "") {
+        var thisDoc = app.open(fileName);
+        updateMetaData(keywords, description, title);
+        fitView();
+        thisDoc.close(SaveOptions.SAVECHANGES);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+function main() {
+    var slash = getDelimiter();
+    var folderObj = new Folder();
+    var rootfolder = folderObj.selectDlg("Выбери папку в которой лежат файлы");
+    if (!rootfolder) {
+        return null;
+    }
+
+    var eps10T_template = new File(rootfolder + slash + "template_for_reExport_EPS.eps");
+    if (!eps10T_template.exists) {
+        var eps10T_template = new File(Folder.desktop + slash + "template_for_reExport_EPS.eps");
+    }
+    if (!eps10T_template.exists) {
+        alert("Файл-шаблон template_for_reExport_EPS.eps должен быть на рабочем столе или в папке с обрабатываемыми eps. Без этого работать не будет.");
+        return null;
+    }
+    var target_MP = prompt("Подгонять размер под 4МП или больше?\n2000:2000 = 4МП, 5000:5000 = 25МП\nПо умолчанию 6МП - небольшое превышение на всякий случай", 6, "Параметры ресайза");
+    if (!target_MP || target_MP == 0) {
+        return null;
+    }
+    target_MP = parseFloat(target_MP.replace(",", "."));
+    var target_MP = 1000000 * target_MP;
+    if (target_MP > 128000000) {
+        alert("Это уж слишком..");
+        return null;
+    }
+    if (!target_MP) {
+        alert("Ошибка при вводе..");
+        return null;
+    }
+
+    var allfolders = [];
+    allfolders = getFoldersListRecursive(rootfolder, allfolders);
+    var errors = 0;
+    for (var j = 0; j < allfolders.length; j++){
+      
+        var folder = allfolders[j];
+        var files = folder.getFiles("*.eps");
+    
+        var targetFolder = folder.fsName + " RE-EXPORTED";
+        tryFolder(targetFolder);
+       
+        for (var i = 0; i < files.length; i += 1) {
+            try {
+                reExport(files[i], targetFolder, slash, target_MP, eps10T_template);
+            } catch (exp) {
+                alert(exp);
+                errors++;
+            }
+        }
+    }
+       if (errors > 0) {
+           alert("Случилось " + errors + " ошибок (и столько файлов не пересохранено)")
+       }
+}
+
+function reExport(fileName, targetFolder, slash, target_MP, eps10T_template) {
+    if (fileName.name == "template_for_reExport_EPS.eps") {
+        return null;
+    }
+    var targetFile = new File(targetFolder + slash + fileName.name);
+    var thisDoc = app.open(fileName);
+    for (var i = 0; i < thisDoc.layers.length; i += 1) {
+        thisDoc.layers[i].locked = false;
+    }
+    eps10T_template.copy(targetFile);
+    var epsDocFile = new File(targetFolder + slash + fileName.name);
+    var title = ReadXMPMetadata("title");
+    var description = ReadXMPMetadata("description");
+    var keywords = ReadXMPMetadata("subject");
+    if (title == "") {
+        title = read_prop_from_file(fileName.fsName.replace(".eps", ".jpg"), "title")
+    }
+    if (description == "") {
+        description = read_prop_from_file(fileName.fsName.replace(".eps", ".jpg"), "description")
+    }
+    if (keywords == "") {
+        keywords = read_prop_from_file(fileName.fsName.replace(".eps", ".jpg"), "subject")
+    }
+    var jpgFile = new File(fileName.fsName.replace(".eps", ".jpg"));
+    if (jpgFile.exists) {
+        var target_jpgFile = new File(targetFolder + slash + jpgFile.name);
+        jpgFile.copy(target_jpgFile);
+    }
+    flattenArtwork_via_action(targetFolder, slash);
+    app.executeMenuCommand("selectall");
+    app.executeMenuCommand("group");
+    var ab = thisDoc.artboards[0].artboardRect;
+    var clippath = thisDoc.layers[0].pathItems.rectangle(ab[1], ab[0], ab[2] - ab[0], ab[1] - ab[3]);
+    clippath.stroked = false;
+    clippath.filled = false;
+    clippath.name = "temp_empty_clipping_path_sholud_be_remove";
+    var zoom = Math.ceil(100 * Math.sqrt(target_MP / (clippath.width * clippath.height)));
+    if (clippath.width != Math.round(clippath.width) || clippath.height != Math.round(clippath.height)) {
+        zoom += 1
+    }
+    app.executeMenuCommand("selectall");
+    app.executeMenuCommand("makeMask");
+    app.redraw();
+    app.executeMenuCommand("selectall");
+    app.executeMenuCommand("copy");
+    thisDoc.close(SaveOptions.DONOTSAVECHANGES);
+    var epsDoc = app.open(epsDocFile);
+    app.redraw();
+    app.executeMenuCommand("selectall");
+    app.executeMenuCommand("clear");
+    app.redraw();
+    app.executeMenuCommand("pasteFront");
+    zoom_via_action(zoom, targetFolder, slash);
+    app.selection = null;
+    app.redraw();
+    app.executeMenuCommand("selectall");
+    app.executeMenuCommand("Fit Artboard to selected Art");
+    app.redraw();
+    app.selection = null;
+    app.executeMenuCommand("selectall");
+    app.executeMenuCommand("releaseMask");
+    app.selection = null;
+    app.redraw();
+    epsDoc.layers[0].pathItems.temp_empty_clipping_path_sholud_be_remove.remove();
+    app.redraw();
+    app.executeMenuCommand("selectall");
+    app.executeMenuCommand("ungroup");
+    app.selection = null;
+    app.redraw();
+    app.selection = null;
+    app.redraw();
+    fitView();
+    if (keywords != "" || description != "" || title != "") {
+        updateMetaData(keywords, description, title);
+    }
+    exportPNG(fileName.name, targetFolder, slash);
+    epsDoc.close(SaveOptions.SAVECHANGES);
+}
+
+function getDelimiter() {
+    var pathDelimiter = "\\";
+    var system = $.os;
+    if (system.search("Windows") == -1) {
+        pathDelimiter = "/"
+    }
+    return pathDelimiter;
+}
+
+function tryFolder(targetFolder) {
+    var f = new Folder(targetFolder);
+    if (!f.exists) {
+        f.create()
+    }
+}
+
+function fitView() {
+    app.executeMenuCommand("fitall");
+    app.executeMenuCommand("zoomout");
+    app.redraw();
+}
+
+function flattenArtwork_via_action(targetFolder, slash) {
+    var actionStr = ["/version 3", "/name [ 7", "\t466c617474656e", "]", "/isOpen 1", "/actionCount 1", "/action-1 {", "\t/name [ 15", "\t\t466c617474656e20417274776f726b", "\t]", "\t/keyIndex 0", "\t/colorIndex 0", "\t/isOpen 1", "\t/eventCount 1", "\t/event-1 {", "\t\t/useRulersIn1stQuadrant 0", "\t\t/internalName (ai_plugin_Layer)", "\t\t/localizedName [ 5", "\t\t\t4c61796572", "\t\t]", "\t\t/isOpen 0", "\t\t/isOn 1", "\t\t/hasDialog 0", "\t\t/parameterCount 2", "\t\t/parameter-1 {", "\t\t\t/key 1836411236", "\t\t\t/showInPalette 4294967295", "\t\t\t/type (integer)", "\t\t\t/value 14", "\t\t}", "\t\t/parameter-2 {", "\t\t\t/key 1851878757", "\t\t\t/showInPalette 4294967295", "\t\t\t/type (ustring)", "\t\t\t/value [ 15", "\t\t\t\t466c617474656e20417274776f726b", "\t\t\t]", "\t\t}", "\t}", "}"].join("\n");
+    var actFileDestStr = targetFolder + slash + "ExpEPS_FlattenArtworkAction.aia";
+    var f = new File(actFileDestStr);
+    f.open("w");
+    f.write(actionStr);
+    f.close();
+    app.loadAction(f);
+    app.doScript("Flatten Artwork", "Flatten", true);
+    app.unloadAction("Flatten", "");
+    f.remove();
+}
+
+function zoom_via_action(zoom, targetFolder, slash) {
+    var actionStr = ["/version 3 ", "/name [ 4 ", "\t7a6f6f6d ", "] ", "/isOpen 1 ", "/actionCount 1 ", "/action-1 { ", "\t/name [ 4 ", "\t\t7a6f6f6d ", "\t] ", "\t/keyIndex 0 ", "\t/colorIndex 0 ", "\t/isOpen 1 ", "\t/eventCount 1 ", "\t/event-1 { ", "\t\t/useRulersIn1stQuadrant 0 ", "\t\t/internalName (ai_plugin_TransformEach) ", "\t\t/localizedName [ 14 ", "\t\t\t5472616e73666f726d2045616368 ", "\t\t] ", "\t\t/isOpen 0 ", "\t\t/isOn 1 ", "\t\t/hasDialog 1 ", "\t\t/showDialog 0 ", "\t\t/parameterCount 13 ", "\t\t/parameter-1 { ", "\t\t\t/key 1936224890 ", "\t\t\t/showInPalette 4294967295 ", "\t\t\t/type (unit real) ", "\t\t\t/value _ZOOM_.0 ", "\t\t\t/unit 592474723 ", "\t\t} ", "\t\t/parameter-2 { ", "\t\t\t/key 1937142388 ", "\t\t\t/showInPalette 4294967295 ", "\t\t\t/type (unit real) ", "\t\t\t/value _ZOOM_.0 ", "\t\t\t/unit 592474723 ", "\t\t} ", "\t\t/parameter-3 { ", "\t\t\t/key 1835561594 ", "\t\t\t/showInPalette 4294967295 ", "\t\t\t/type (unit real) ", "\t\t\t/value 0.0 ", "\t\t\t/unit 592476268 ", "\t\t} ", "\t\t/parameter-4 { ", "\t\t\t/key 1836479092 ", "\t\t\t/showInPalette 4294967295 ", "\t\t\t/type (unit real) ", "\t\t\t/value 0.0 ", "\t\t\t/unit 592476268 ", "\t\t} ", "\t\t/parameter-5 { ", "\t\t\t/key 1634625388 ", "\t\t\t/showInPalette 4294967295 ", "\t\t\t/type (unit real) ", "\t\t\t/value 0.0 ", "\t\t\t/unit 591490663 ", "\t\t} ", "\t\t/parameter-6 { ", "\t\t\t/key 1668247673 ", "\t\t\t/showInPalette 4294967295 ", "\t\t\t/type (boolean) ", "\t\t\t/value 0 ", "\t\t} ", "\t\t/parameter-7 { ", "\t\t\t/key 1919837293 ", "\t\t\t/showInPalette 4294967295 ", "\t\t\t/type (boolean) ", "\t\t\t/value 0 ", "\t\t} ", "\t\t/parameter-8 { ", "\t\t\t/key 1818848869 ", "\t\t\t/showInPalette 4294967295 ", "\t\t\t/type (boolean) ", "\t\t\t/value 1 ", "\t\t} ", "\t\t/parameter-9 { ", "\t\t\t/key 1868720756 ", "\t\t\t/showInPalette 4294967295 ", "\t\t\t/type (boolean) ", "\t\t\t/value 1 ", "\t\t} ", "\t\t/parameter-10 { ", "\t\t\t/key 1885434990 ", "\t\t\t/showInPalette 4294967295 ", "\t\t\t/type (boolean) ", "\t\t\t/value 1 ", "\t\t} ", "\t\t/parameter-11 { ", "\t\t\t/key 1919247980 ", "\t\t\t/showInPalette 4294967295 ", "\t\t\t/type (boolean) ", "\t\t\t/value 0 ", "\t\t} ", "\t\t/parameter-12 { ", "\t\t\t/key 1919247993 ", "\t\t\t/showInPalette 4294967295 ", "\t\t\t/type (boolean) ", "\t\t\t/value 0 ", "\t\t} ", "\t\t/parameter-13 { ", "\t\t\t/key 1885957744 ", "\t\t\t/showInPalette 4294967295 ", "\t\t\t/type (enumerated) ", "\t\t\t/name [ 6 ", "\t\t\t\t63656e746572 ", "\t\t\t] ", "\t\t\t/value 4 ", "\t\t} ", "\t} ", "} "].join("\n");
+    var actFileDestStr = targetFolder + slash + "ExpEPS_ZoomAction.aia";
+    actionStr = actionStr.replace("_ZOOM_", zoom).replace("_ZOOM_", zoom);
+    var f = new File(actFileDestStr);
+    f.open("w");
+    f.write(actionStr);
+    f.close();
+    app.loadAction(f);
+    app.doScript("zoom", "zoom", true);
+    app.unloadAction("zoom", "");
+    f.remove();
+}
+
+function exportJPG(fileN, folderConst, slash) {
+    var thisDoc = app.activeDocument;
+    var exportJPGName = new File(folderConst + slash + fileN.replace(".eps", ".jpg"));
+    var exportOptions = new ExportOptionsJPEG();
+    exportOptions.optimization = true;
+    exportOptions.antiAliasing = true;
+    var biggest;
+    if (thisDoc.width > thisDoc.height) {
+        biggest = thisDoc.width
+    } else {
+        biggest = thisDoc.height
+    }
+    var scale500 = (500 / biggest) * 100;
+    exportOptions.verticalScale = scale500;
+    exportOptions.horizontalScale = scale500;
+    exportOptions.qualitySetting = 100;
+    exportOptions.artBoardClipping = true;
+    thisDoc.exportFile(exportJPGName, ExportType.JPEG, exportOptions);
+}
+
+function exportPNG(fileN, folderConst, slash) {
+    var thisDoc = app.activeDocument;
+    var exportOptions = new ExportOptionsPNG24();
+    var type = ExportType.PNG24;
+    var fileSpec = new File(folderConst + slash + fileN.replace(".eps", ".png"));
+    exportOptions.transparency = false;
+    exportOptions.artBoardClipping = true;
+    var biggest;
+    if (thisDoc.width > thisDoc.height) {
+        biggest = thisDoc.width
+    } else {
+        biggest = thisDoc.height
+    }
+    var scale500 = (500 / biggest) * 100;
+    exportOptions.verticalScale = scale500;
+    exportOptions.horizontalScale = scale500;
+    app.activeDocument.exportFile(fileSpec, type, exportOptions);
+}
+
+function loadXMPLibrary() {
+    try {
+        if (ExternalObject.AdobeXMPScript == undefined) {
+            ExternalObject.AdobeXMPScript = new ExternalObject("lib:AdobeXMPScript");
+        }
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+function ReadXMPMetadata(prop) {
+    var PropText = "";
+    var Doc = app.activeDocument;
+    if (loadXMPLibrary() == true) {
+        Xmp = new XMPMeta(Doc.XMPString);
+        switch (prop) {
+            case "creator":
+                num = Xmp.countArrayItems(XMPConst.NS_DC, "creator");
+                for (var i = 1; i <= num; i += 1) {
+                    PropText += Xmp.getArrayItem(XMPConst.NS_DC, "creator", i);
+                    if (i <= (num - 1)) {
+                        PropText += ", ";
+                    }
+                }
+                break;
+            case "title":
+                PropText += Xmp.getArrayItem(XMPConst.NS_DC, "title", XMPConst.ARRAY_LAST_ITEM);
+                break;
+            case "description":
+                PropText += Xmp.getArrayItem(XMPConst.NS_DC, "description", XMPConst.ARRAY_LAST_ITEM);
+                break;
+            case "subject":
+                num = Xmp.countArrayItems(XMPConst.NS_DC, "subject");
+                for (var i = 1; i <= num; i += 1) {
+                    PropText += Xmp.getArrayItem(XMPConst.NS_DC, "subject", i);
+                    if (i <= (num - 1)) {
+                        PropText += ", ";
+                    }
+                }
+                break;
+        }
+    }
+    return PropText;
+}
+
+function updateMetaData(keys, desc, title) {
+    var Doc = app.activeDocument;
+    var metaDescription = desc;
+    var metaKeywords = keys;
+    var metaTitle = title;
+    if (metaTitle == "") {
+        metaTitle = metaDescription
+    }
+    UpdateXMPMetadata();
+
+    function UpdateXMPMetadata(targetFile) {
+        app.synchronousMode = true;
+        if (loadXMPLibrary() == true) {
+            if (targetFile != undefined) {
+                var xmpFile = new XMPFile(targetFile.fsName, XMPConst.UNKNOWN, XMPConst.OPEN_FOR_UPDATE);
+                Xmp = xmpFile.getXMP();
+            } else {
+                Xmp = new XMPMeta(Doc.XMPString);
+            }
+            dateTime = new XMPDateTime(new Date());
+            Xmp.setProperty(XMPConst.NS_XMP, "ModifyDate", dateTime, "xmpdate");
+            Xmp.deleteProperty(XMPConst.NS_DC, "title");
+            Xmp.appendArrayItem(XMPConst.NS_DC, "title", metaTitle, 0, XMPConst.ALIAS_TO_ALT_ARRAY);
+            Xmp.deleteProperty(XMPConst.NS_DC, "headline");
+            Xmp.appendArrayItem(XMPConst.NS_DC, "headline", metaDescription, 0, XMPConst.ALIAS_TO_ALT_ARRAY);
+            Xmp.deleteProperty(XMPConst.NS_DC, "description");
+            Xmp.appendArrayItem(XMPConst.NS_DC, "description", metaDescription, 0, XMPConst.ALIAS_TO_ALT_ARRAY);
+            arKey = new Array();
+            arKey = metaKeywords.split(", ");
+            Xmp.deleteProperty(XMPConst.NS_DC, "subject");
+            for (var i = 0; i <= arKey.length - 1; i += 1) {
+                Xmp.appendArrayItem(XMPConst.NS_DC, "subject", arKey[i], 0, XMPConst.ALIAS_TO_ARRAY);
+            }
+            if (targetFile != undefined) {
+                if (xmpFile.canPutXMP(Xmp)) {
+                    xmpFile.putXMP(Xmp);
+                }
+                xmpFile.closeFile(XMPConst.CLOSE_UPDATE_SAFELY);
+            } else {
+                xmpNewStr = Xmp.serialize(XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
+                Doc.XMPString = xmpNewStr;
+            }
+        }
+    }
+}
+
+function read_prop_from_file(file, prop) {
+    var jpgFile = new File(file);
+    if (!jpgFile.exists) {
+        return "";
+    }
+    if (ExternalObject.AdobeXMPScript == undefined) {
+        ExternalObject.AdobeXMPScript = new ExternalObject("lib:AdobeXMPScript");
+    }
+    var xmpFile = new XMPFile(file, XMPConst.UNKNOWN, XMPConst.OPEN_FOR_UPDATE);
+    var Xmp = xmpFile.getXMP();
+    var PropText = "";
+    switch (prop) {
+        case "creator":
+            var num = Xmp.countArrayItems(XMPConst.NS_DC, "creator");
+            for (var i = 1; i <= num; i += 1) {
+                PropText += Xmp.getArrayItem(XMPConst.NS_DC, "creator", i);
+                if (i <= (num - 1)) {
+                    PropText += ", ";
+                }
+            }
+            break;
+        case "title":
+            PropText += Xmp.getArrayItem(XMPConst.NS_DC, "title", XMPConst.ARRAY_LAST_ITEM);
+            break;
+        case "description":
+            PropText += Xmp.getArrayItem(XMPConst.NS_DC, "description", XMPConst.ARRAY_LAST_ITEM);
+            break;
+        case "subject":
+            var num = Xmp.countArrayItems(XMPConst.NS_DC, "subject");
+            for (var i = 1; i <= num; i += 1) {
+                PropText += Xmp.getArrayItem(XMPConst.NS_DC, "subject", i);
+                if (i <= (num - 1)) {
+                    PropText += ", ";
+                }
+            }
+            break;
+    }
+    return PropText;
+}
+
+function epsExport() {
+    app.coordinateSystem = CoordinateSystem.ARTBOARDCOORDINATESYSTEM;
+    var epsDoc = app.activeDocument;
+    var exportEPSName = new File("auto.eps");
+    var saveOpts = new EPSSaveOptions();
+    saveOpts.compatibility = Compatibility.ILLUSTRATOR10;
+    app.activeDocument.saveAs(exportEPSName, saveOpts);
+}
+
+function getFoldersListRecursive(f, result) {
+     var allFiles = f.getFiles();
+     for (var i = 0; i < allFiles.length; i++) {
+           if (allFiles[i] instanceof Folder){ 
+                      result.push(allFiles[i]);
+                      getFoldersListRecursive(allFiles[i], result);         
+                      }
+     }
+    return result;
+}
